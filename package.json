@@ -1,0 +1,83 @@
+{
+  "name": "@kitiumai/scripts",
+  "version": "1.0.0",
+  "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kitiumai/scripts.git"
+  },
+  "homepage": "https://github.com/kitiumai/scripts#readme",
+  "bugs": {
+    "url": "https://github.com/kitiumai/scripts/issues"
+  },
+  "author": "Kitium AI",
+  "keywords": [
+    "scripts",
+    "utilities",
+    "build",
+    "development",
+    "tooling"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./build": {
+      "import": "./dist/build/index.js",
+      "types": "./dist/build/index.d.ts"
+    },
+    "./test": {
+      "import": "./dist/test/index.js",
+      "types": "./dist/test/index.d.ts"
+    },
+    "./lint": {
+      "import": "./dist/lint/index.js",
+      "types": "./dist/lint/index.d.ts"
+    },
+    "./git": {
+      "import": "./dist/git/index.js",
+      "types": "./dist/git/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist node_modules",
+    "test": "node --test dist/**/*.test.js",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "prepublishOnly": "npm run build && npm run lint && npm run type-check"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.0"
+  }
+}

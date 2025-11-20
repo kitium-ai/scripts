@@ -1,0 +1,26 @@
+# Development files
+src/
+tsconfig.json
+.eslintrc.json
+.prettierrc.json
+.gitignore
+.github/
+
+# Test and build files
+coverage/
+.nyc_output/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Repository
+.git/
+.gitignore
+CHANGELOG.md
