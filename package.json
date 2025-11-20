@@ -26,6 +26,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "setup-github-security": "./bin/github-security/setup-github-security",
+    "configure-github-branch-protection": "./bin/github-security/configure-github-branch-protection"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -53,9 +57,13 @@
     }
   },
   "files": [
+    "bin",
     "dist",
     "src",
     "README.md",
+    "GITHUB_SECURITY_SETUP.md",
+    "README_GITHUB_SECURITY.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
