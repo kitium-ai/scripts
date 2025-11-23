@@ -1,4 +1,7 @@
-import { exec, log, ExecResult } from '../utils/index.js';
+import { exec, log, ExecResult, pathExists, getEnv } from '../utils/index.js';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 
 /**
  * Get current git branch
@@ -169,4 +172,127 @@ export async function createTag(tagName: string, message?: string): Promise<void
 
   await exec('git', args);
   log('success', `Created tag: ${tagName}`);
+}
+
+/**
+ * Set NPM authentication token
+ * Updates both local .npmrc and user-level .npmrc
+ * @param token NPM token (defaults to NPM_TOKEN env var or hardcoded default)
+ * @param options Options for token setup
+ */
+export async function setNpmToken(
+  token?: string,
+  options: { verify?: boolean } = {}
+): Promise<void> {
+  const { verify = true } = options;
+  
+  // Get token from parameter, env var, or default
+  const DEFAULT_TOKEN = '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';
+  const npmToken = token || getEnv('NPM_TOKEN', DEFAULT_TOKEN);
+
+  if (!npmToken) {
+    throw new Error('NPM_TOKEN is required');
+  }
+
+  const npmrcPath = path.join(process.cwd(), '.npmrc');
+  const homeNpmrcPath = path.join(os.homedir(), '.npmrc');
+
+  // Create local .npmrc file with token
+  const npmrcContent = `//registry.npmjs.org/:_authToken=${npmToken}\n`;
+  await fs.writeFile(npmrcPath, npmrcContent, 'utf-8');
+  log('success', 'Created local .npmrc with authentication token');
+
+  // Update user-level .npmrc (this is what npm actually uses)
+  try {
+    let homeNpmrc = '';
+    if (await pathExists(homeNpmrcPath)) {
+      homeNpmrc = await fs.readFile(homeNpmrcPath, 'utf-8');
+    }
+
+    // Remove any existing auth token line
+    const lines = homeNpmrc
+      .split('\n')
+      .filter((line) => !line.includes('//registry.npmjs.org/:_authToken'));
+
+    // Add the new token
+    lines.push(`//registry.npmjs.org/:_authToken=${npmToken}`);
+
+    await fs.writeFile(homeNpmrcPath, lines.join('\n') + '\n', 'utf-8');
+    log('success', 'Updated user-level .npmrc with authentication token');
+  } catch (error) {
+    log('warn', `Could not update user-level .npmrc: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  // Verify authentication if requested
+  if (verify) {
+    try {
+      const result = await exec('npm', ['whoami', '--registry', 'https://registry.npmjs.org'], {
+        throwOnError: false,
+        verbose: false,
+      });
+      if (result.code === 0) {
+        log('success', `Authentication verified! Logged in as: ${result.stdout.trim()}`);
+      } else {
+        log('warn', 'Could not verify authentication. Please run: npm whoami');
+      }
+    } catch (error) {
+      log('warn', 'Could not verify authentication. Please run: npm whoami');
+    }
+  }
+}
+
+/**
+ * Add .npmrc configuration to current package directory
+ * Copies .npmrc-package-template from monorepo root to current directory
+ * @param force Whether to overwrite existing .npmrc
+ */
+export async function addNpmrc(force = false): Promise<void> {
+  const currentDir = process.cwd();
+  const npmrcPath = path.join(currentDir, '.npmrc');
+  const packageJsonPath = path.join(currentDir, 'package.json');
+
+  // Verify this is a package directory
+  if (!(await pathExists(packageJsonPath))) {
+    throw new Error('No package.json found in current directory');
+  }
+
+  // Check if .npmrc exists
+  if ((await pathExists(npmrcPath)) && !force) {
+    log('warn', '.npmrc already exists. Use force=true to overwrite.');
+    return;
+  }
+
+  // Find monorepo root by looking for .npmrc-package-template
+  let rootDir: string | null = null;
+  let searchDir = currentDir;
+
+  for (let i = 0; i < 20; i++) {
+    const templatePath = path.join(searchDir, '.npmrc-package-template');
+    if (await pathExists(templatePath)) {
+      rootDir = searchDir;
+      break;
+    }
+
+    const parent = path.dirname(searchDir);
+    if (parent === searchDir) {
+      break;
+    }
+    searchDir = parent;
+  }
+
+  if (!rootDir) {
+    throw new Error('Could not find .npmrc-package-template in parent directories');
+  }
+
+  const templatePath = path.join(rootDir, '.npmrc-package-template');
+
+  // Copy template
+  try {
+    const templateContent = await fs.readFile(templatePath, 'utf-8');
+    await fs.writeFile(npmrcPath, templateContent, 'utf-8');
+    const relativePath = path.relative(rootDir, currentDir);
+    log('success', `.npmrc configured for: ${relativePath}`);
+  } catch (error) {
+    throw new Error(`Could not copy .npmrc template: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }

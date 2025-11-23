@@ -12,7 +12,6 @@
 
 // Re-export everything from submodules
 export * from './utils/index.js';
-export * from './build/index.js';
 export * from './test/index.js';
 export * from './lint/index.js';
 export * from './git/index.js';

@@ -74,6 +74,8 @@ import {
   stageFiles,
   commit,
   push,
+  setNpmToken,
+  addNpmrc,
 } from '@kitiumai/scripts/git';
 
 const branch = await getCurrentBranch();
@@ -81,6 +83,10 @@ const changes = await getChangedFiles();
 await stageFiles(changes);
 await commit('feat: add new feature');
 await push();
+
+// NPM authentication
+await setNpmToken(); // Uses NPM_TOKEN env var
+await addNpmrc(); // Add .npmrc to current package
 ```
 
 ### Utilities
@@ -294,6 +300,46 @@ Get list of git tags.
 
 Create a git tag.
 
+#### `setNpmToken(token?, options?)`
+
+Set NPM authentication token. Updates both local `.npmrc` and user-level `.npmrc` files.
+
+**Parameters:**
+- `token` - NPM token (optional, defaults to `NPM_TOKEN` env var or hardcoded default)
+- `options.verify` - Whether to verify authentication after setting (default: true)
+
+**Example:**
+```typescript
+import { setNpmToken } from '@kitiumai/scripts/git';
+
+// Set token from environment variable
+await setNpmToken();
+
+// Set specific token
+await setNpmToken('npm_xxxxxxxxxxxxx');
+
+// Set token without verification
+await setNpmToken(undefined, { verify: false });
+```
+
+#### `addNpmrc(force?)`
+
+Add `.npmrc` configuration to current package directory. Copies `.npmrc-package-template` from monorepo root.
+
+**Parameters:**
+- `force` - Whether to overwrite existing `.npmrc` (default: false)
+
+**Example:**
+```typescript
+import { addNpmrc } from '@kitiumai/scripts/git';
+
+// Add .npmrc (fails if exists)
+await addNpmrc();
+
+// Force overwrite existing .npmrc
+await addNpmrc(true);
+```
+
 ### Utils Module
 
 #### `exec(command, args?, options?)`
@@ -374,6 +420,34 @@ The package respects standard configuration files:
 - **tsconfig.json** - TypeScript configuration
 - **.eslintrc.json** - ESLint rules
 - **.prettierrc.json** - Prettier formatting options
+
+## CLI Tools
+
+The package provides command-line tools via `bin` entries:
+
+### `set-npm-token`
+
+Set NPM authentication token for publishing packages.
+
+```bash
+# Use default token or NPM_TOKEN env var
+npx set-npm-token
+
+# Use specific token
+npx set-npm-token npm_xxxxxxxxxxxxx
+```
+
+### `add-npmrc`
+
+Add `.npmrc` configuration to current package directory.
+
+```bash
+# Add .npmrc (fails if exists)
+npx add-npmrc
+
+# Force overwrite existing .npmrc
+npx add-npmrc --force
+```
 
 ## Scripts
 

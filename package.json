@@ -1,8 +1,11 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
   "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kitiumai/scripts.git"
@@ -28,31 +31,40 @@
   "types": "./dist/index.d.ts",
   "bin": {
     "setup-github-security": "./bin/github-security/setup-github-security",
-    "configure-github-branch-protection": "./bin/github-security/configure-github-branch-protection"
+    "configure-github-branch-protection": "./bin/github-security/configure-github-branch-protection",
+    "set-npm-token": "./bin/set-npm-token.js",
+    "add-npmrc": "./bin/add-npmrc.js",
+    "ensure-changeset": "./bin/ensure-changeset.js"
   },
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
     "./build": {
       "import": "./dist/build/index.js",
+      "require": "./dist/build/index.js",
       "types": "./dist/build/index.d.ts"
     },
     "./test": {
       "import": "./dist/test/index.js",
+      "require": "./dist/test/index.js",
       "types": "./dist/test/index.d.ts"
     },
     "./lint": {
       "import": "./dist/lint/index.js",
+      "require": "./dist/lint/index.js",
       "types": "./dist/lint/index.d.ts"
     },
     "./git": {
       "import": "./dist/git/index.js",
+      "require": "./dist/git/index.js",
       "types": "./dist/git/index.d.ts"
     },
     "./utils": {
       "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.js",
       "types": "./dist/utils/index.d.ts"
     }
   },
@@ -61,9 +73,6 @@
     "dist",
     "src",
     "README.md",
-    "GITHUB_SECURITY_SETUP.md",
-    "README_GITHUB_SECURITY.md",
-    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
@@ -73,11 +82,18 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist node_modules",
     "test": "node --test dist/**/*.test.js",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build && npm run lint && npm run type-check"
+    "prepublishOnly": "npm run build && npm run lint && npm run type-check",
+    "publish:set-token": "node bin/set-npm-token.js",
+    "publish:setup": "node -e \"const fs=require('fs');const path=require('path');const os=require('os');const token=process.env.NPM_TOKEN;if(!token){console.error('Error: NPM_TOKEN environment variable not set');process.exit(1);}const isWindows=os.platform()==='win32';const homeNpmrc=path.join(os.homedir(),isWindows?'.npmrc':'.npmrc');let content='';if(fs.existsSync(homeNpmrc)){content=fs.readFileSync(homeNpmrc,'utf8');}const lines=content.split('\\n').filter(l=>!l.includes('//registry.npmjs.org/:_authToken'));lines.push('//registry.npmjs.org/:_authToken='+token);fs.writeFileSync(homeNpmrc,lines.join('\\n')+'\\n');console.log('✓ Updated user-level .npmrc with authentication');\"",
+    "publish:check": "npm whoami --registry https://registry.npmjs.org || (echo 'Error: Not logged in to npm. Set NPM_TOKEN or run: npm login' && exit 1)",
+    "publish:package": "pnpm run publish:setup && pnpm publish --access public --no-git-checks --registry https://registry.npmjs.org",
+    "publish:dry-run": "pnpm run publish:setup && pnpm publish --access public --no-git-checks --dry-run --registry https://registry.npmjs.org",
+    "changeset": "node bin/ensure-changeset.js && changeset",
+    "changeset:init": "node bin/ensure-changeset.js"
   },
   "dependencies": {},
   "devDependencies": {
