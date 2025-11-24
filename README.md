@@ -8,7 +8,13 @@ A comprehensive collection of reusable scripts and utilities for the Kitium AI o
 - **Test Utilities**: Unit testing, coverage reports, test discovery, watch mode
 - **Lint & Format**: ESLint integration, Prettier formatting, code quality checks
 - **Git Utilities**: Branch management, commits, pushing/pulling, tag management
+- **Dependency Management**: Detect and fix deprecated dependencies automatically
 - **Core Utils**: Command execution, file operations, logging, environment handling
+- **Security & Compliance**: Secret scanning orchestration, dependency audits, policy enforcement
+- **Developer Experience Guardrails**: Conventional commit validation, shared config enforcement, CODEOWNERS verification
+- **Release Automation**: Changeset aggregation, prepublish verification, git/npm version sync
+- **Operational Readiness**: Service smoke tests, rollout guards, log schema validation
+- **Fleet Automation**: Bulk repo task runner, environment validation, drift detection
 
 ## Installation
 
@@ -89,6 +95,22 @@ await setNpmToken(); // Uses NPM_TOKEN env var
 await addNpmrc(); // Add .npmrc to current package
 ```
 
+### Dependency Management
+
+```typescript
+import { fixDeprecatedDeps, checkDeprecatedDeps, applyFixes } from '@kitiumai/scripts/deps';
+
+// Check and fix deprecated dependencies
+await fixDeprecatedDeps(undefined, true); // autoFix = true
+
+// Check only (no fixes)
+const deprecated = await checkDeprecatedDeps('./package.json');
+console.log(`Found ${deprecated.length} deprecated packages`);
+
+// Apply fixes manually
+await applyFixes('./package.json', deprecated, true);
+```
+
 ### Utilities
 
 ```typescript
@@ -101,6 +123,21 @@ import {
   log,
   getEnv,
   measure,
+  scanSecrets,
+  auditDependencies,
+  checkPolicyCompliance,
+  validateCommits,
+  ensureSharedConfigs,
+  checkCodeownersCoverage,
+  prepareReleaseNotes,
+  verifyPublishState,
+  syncVersionTags,
+  smokeServices,
+  rolloutGuard,
+  verifyLogSchemas,
+  runBulkRepoTask,
+  validateEnv,
+  detectDrift,
 } from '@kitiumai/scripts';
 
 // Execute commands
@@ -120,6 +157,22 @@ log('error', 'Failed to connect');
 await measure('Build', async () => {
   // your code here
 });
+
+// Run secret scan with gitleaks
+await scanSecrets({ configPath: 'tooling/config/gitleaks.toml' });
+
+// Ensure commits follow conventional commits
+await validateCommits({ from: 'origin/main', to: 'HEAD' });
+
+// Prepare release notes from changesets
+const notes = await prepareReleaseNotes();
+console.log(notes.markdown);
+
+// Run smoke tests before rollout
+await smokeServices([{ name: 'API', url: 'https://api.example.com/health' }]);
+
+// Validate environment before running bulk operations
+await validateEnv({ requiredEnv: ['NPM_TOKEN'], requiredCommands: [{ cmd: 'pnpm', minVersion: '9.0.0' }] });
 ```
 
 ## API Reference
@@ -340,6 +393,114 @@ await addNpmrc();
 await addNpmrc(true);
 ```
 
+### Deps Module
+
+#### `fixDeprecatedDeps(packagePath?, autoFix?)`
+
+Main function to check and fix deprecated dependencies in a package.
+
+**Parameters:**
+- `packagePath` - Optional path to package directory (default: current working directory)
+- `autoFix` - Whether to automatically apply fixes (default: false)
+
+**Example:**
+```typescript
+import { fixDeprecatedDeps } from '@kitiumai/scripts/deps';
+
+// Check and auto-fix deprecated dependencies
+await fixDeprecatedDeps(undefined, true);
+
+// Check specific package
+await fixDeprecatedDeps('./packages/my-package', false);
+```
+
+#### `checkDeprecatedDeps(packageJsonPath)`
+
+Check for deprecated dependencies in a package.
+
+**Parameters:**
+- `packageJsonPath` - Path to package.json file
+
+**Returns:** Array of deprecated packages with their information
+
+**Example:**
+```typescript
+import { checkDeprecatedDeps } from '@kitiumai/scripts/deps';
+
+const deprecated = await checkDeprecatedDeps('./package.json');
+for (const dep of deprecated) {
+  console.log(`${dep.name}@${dep.version}: ${dep.reason}`);
+}
+```
+
+#### `applyFixes(packageJsonPath, deprecated, autoFix?)`
+
+Apply fixes for deprecated dependencies by updating package.json with overrides.
+
+**Parameters:**
+- `packageJsonPath` - Path to package.json file
+- `deprecated` - Array of deprecated packages to fix
+- `autoFix` - Whether to apply fixes without confirmation (default: false)
+
+**Returns:** Boolean indicating if changes were made
+
+**Example:**
+```typescript
+import { checkDeprecatedDeps, applyFixes } from '@kitiumai/scripts/deps';
+
+const deprecated = await checkDeprecatedDeps('./package.json');
+await applyFixes('./package.json', deprecated, true);
+```
+
+#### `findDependents(packageJsonPath, depName)`
+
+Find which packages depend on a deprecated package.
+
+**Parameters:**
+- `packageJsonPath` - Path to package.json file
+- `depName` - Name of the deprecated package
+
+**Returns:** Array of package names that depend on the deprecated package
+
+**Example:**
+```typescript
+import { findDependents } from '@kitiumai/scripts/deps';
+
+const dependents = findDependents('./package.json', 'lodash.get');
+console.log(`Used by: ${dependents.join(', ')}`);
+```
+
+#### `findPackageJson(startDir)`
+
+Find package.json file in a directory tree.
+
+**Parameters:**
+- `startDir` - Starting directory to search from
+
+**Returns:** Path to package.json or null if not found
+
+#### `getPackageManager(packageJsonPath)`
+
+Detect the package manager (npm, pnpm, or yarn) used in a project.
+
+**Parameters:**
+- `packageJsonPath` - Path to package.json file
+
+**Returns:** 'npm' | 'pnpm' | 'yarn'
+
+#### `DEPRECATED_FIXES`
+
+A record of known deprecated packages and their fix strategies.
+
+**Example:**
+```typescript
+import { DEPRECATED_FIXES } from '@kitiumai/scripts/deps';
+
+// Access fix information
+const lodashFix = DEPRECATED_FIXES['lodash.get'];
+console.log(lodashFix.reason); // "lodash.get is deprecated..."
+```
+
 ### Utils Module
 
 #### `exec(command, args?, options?)`
@@ -403,8 +564,14 @@ Measure execution time of an async function.
 │   │   └── index.ts             # Testing utilities
 │   ├── lint/
 │   │   └── index.ts             # Linting and formatting
-│   └── git/
-│       └── index.ts             # Git operations
+│   ├── git/
+│   │   └── index.ts             # Git operations
+│   └── deps/
+│       └── index.ts             # Deprecated dependency management
+├── bin/
+│   ├── fix-deprecated-deps.js   # CLI for deprecated deps
+│   ├── set-npm-token.js
+│   └── ...
 ├── dist/                        # Compiled output
 ├── package.json
 ├── tsconfig.json
@@ -449,6 +616,47 @@ npx add-npmrc
 npx add-npmrc --force
 ```
 
+### `fix-deprecated-deps`
+
+Detect and fix deprecated dependencies in your project.
+
+```bash
+# Check for deprecated dependencies
+npx fix-deprecated-deps
+
+# Automatically fix deprecated dependencies
+npx fix-deprecated-deps --fix
+
+# Check a specific package
+npx fix-deprecated-deps --package=./packages/my-package
+
+# Auto-fix a specific package
+npx fix-deprecated-deps --fix --package=./packages/my-package
+```
+
+**Features:**
+- Detects deprecated packages using npm/pnpm audit
+- Identifies which packages depend on deprecated packages
+- Automatically applies fixes via package.json overrides
+- Supports npm, pnpm, and yarn
+- Works in monorepos and single packages
+
+**Known Fixes:**
+- `lodash.get` → Replaced with `lodash@^4.17.21`
+- `subscriptions-transport-ws` → Suggests updating parent package (`eslint-plugin-graphql`)
+
+### `ensure-changeset`
+
+Ensure `.changeset` directory and `config.json` exist in the project root.
+
+```bash
+# Create .changeset if missing
+npx ensure-changeset
+
+# Force overwrite existing config
+npx ensure-changeset --force
+```
+
 ## Scripts
 
 Common package.json scripts for your projects:
@@ -462,7 +670,9 @@ Common package.json scripts for your projects:
     "test:cov": "node -e \"import('@kitiumai/scripts').then(m => m.runTestsCoverage())\"",
     "lint": "node -e \"import('@kitiumai/scripts').then(m => m.lintAll(false))\"",
     "lint:fix": "node -e \"import('@kitiumai/scripts').then(m => m.lintAll(true))\"",
-    "type-check": "node -e \"import('@kitiumai/scripts').then(m => m.typeCheck())\""
+    "type-check": "node -e \"import('@kitiumai/scripts').then(m => m.typeCheck())\"",
+    "fix:deprecated": "fix-deprecated-deps",
+    "fix:deprecated:auto": "fix-deprecated-deps --fix"
   }
 }
 ```

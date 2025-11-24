@@ -1,6 +1,6 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
   "license": "Apache-2.0",
   "publishConfig": {
@@ -34,7 +34,8 @@
     "configure-github-branch-protection": "./bin/github-security/configure-github-branch-protection",
     "set-npm-token": "./bin/set-npm-token.js",
     "add-npmrc": "./bin/add-npmrc.js",
-    "ensure-changeset": "./bin/ensure-changeset.js"
+    "ensure-changeset": "./bin/ensure-changeset.js",
+    "fix-deprecated-deps": "./bin/fix-deprecated-deps.js"
   },
   "exports": {
     ".": {
@@ -66,6 +67,36 @@
       "import": "./dist/utils/index.js",
       "require": "./dist/utils/index.js",
       "types": "./dist/utils/index.d.ts"
+    },
+    "./deps": {
+      "import": "./dist/deps/index.js",
+      "require": "./dist/deps/index.js",
+      "types": "./dist/deps/index.d.ts"
+    },
+    "./security": {
+      "import": "./dist/security/index.js",
+      "require": "./dist/security/index.js",
+      "types": "./dist/security/index.d.ts"
+    },
+    "./dx": {
+      "import": "./dist/dx/index.js",
+      "require": "./dist/dx/index.js",
+      "types": "./dist/dx/index.d.ts"
+    },
+    "./release": {
+      "import": "./dist/release/index.js",
+      "require": "./dist/release/index.js",
+      "types": "./dist/release/index.d.ts"
+    },
+    "./operations": {
+      "import": "./dist/operations/index.js",
+      "require": "./dist/operations/index.js",
+      "types": "./dist/operations/index.d.ts"
+    },
+    "./automation": {
+      "import": "./dist/automation/index.js",
+      "require": "./dist/automation/index.js",
+      "types": "./dist/automation/index.d.ts"
     }
   },
   "files": [
@@ -95,7 +126,12 @@
     "changeset": "node bin/ensure-changeset.js && changeset",
     "changeset:init": "node bin/ensure-changeset.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^14.0.2",
+    "execa": "^5.1.1",
+    "fs-extra": "^11.3.2"
+  },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",

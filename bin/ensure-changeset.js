@@ -6,6 +6,15 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { program } from 'commander';
+import chalk from 'chalk';
+
+const logger = {
+  info: (message) => console.log(chalk.blue('ℹ'), message),
+  success: (message) => console.log(chalk.green('✔'), message),
+  warn: (message) => console.log(chalk.yellow('⚠'), message),
+  error: (message) => console.error(chalk.red('✖'), message),
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,32 +35,44 @@ const defaultConfig = {
   ignore: []
 };
 
-async function ensureChangeset() {
-  try {
-    // Create .changeset directory if it doesn't exist
+program
+  .name('ensure-changeset')
+  .description('Ensure .changeset directory and config.json exist')
+  .option('-f, --force', 'Overwrite existing config', false)
+  .action(async (options) => {
     try {
-      await fs.access(changesetDir);
-    } catch {
-      await fs.mkdir(changesetDir, { recursive: true });
-      console.log('✓ Created .changeset directory');
-    }
+      // Create .changeset directory if it doesn't exist
+      try {
+        await fs.access(changesetDir);
+      } catch {
+        await fs.mkdir(changesetDir, { recursive: true });
+        logger.success('Created .changeset directory');
+      }
 
-    // Create config.json if it doesn't exist
-    try {
-      await fs.access(configPath);
-    } catch {
-      await fs.writeFile(
-        configPath,
-        JSON.stringify(defaultConfig, null, 2) + '\n',
-        'utf-8'
-      );
-      console.log('✓ Created .changeset/config.json');
-    }
-  } catch (error) {
-    console.error('Error setting up .changeset:', error.message);
-    process.exit(1);
-  }
-}
+      // Create config.json if it doesn't exist or force is true
+      let configExists = false;
+      try {
+        await fs.access(configPath);
+        configExists = true;
+      } catch {
+        // Config doesn't exist
+      }
 
-ensureChangeset();
+      if (!configExists || options.force) {
+        await fs.writeFile(
+          configPath,
+          JSON.stringify(defaultConfig, null, 2) + '\n',
+          'utf-8'
+        );
+        logger.success(configExists ? 'Overwrote .changeset/config.json' : 'Created .changeset/config.json');
+      } else {
+        logger.info('.changeset/config.json already exists');
+      }
+    } catch (error) {
+      logger.error(`Error setting up .changeset: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+program.parse();
 
