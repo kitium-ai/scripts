@@ -550,6 +550,76 @@ Get environment variable or throw if not set.
 
 Measure execution time of an async function.
 
+### Security Module
+
+#### `scanSecrets(options?)`
+
+Run Gitleaks or TruffleHog secret scans. Options: `scanner`, `source`, `configPath`, `failOnFinding`, `extraArgs`.
+
+#### `auditDependencies(options?)`
+
+Executes npm/pnpm audit with normalized output. Configure `packagePath`, `severityThreshold`, `includeDev`, and `cwd`.
+
+#### `checkPolicyCompliance(options?)`
+
+Enforces license allowlists/denylists and vulnerability budgets. Accepts `policyFile`, `licenseReportPath`, `auditSummary`, or `fallbackPolicy`.
+
+### Developer Experience Module
+
+#### `validateCommits(options?)`
+
+Checks Conventional Commit compliance for a git range. Options include `from`, `to`, `allowedTypes`, `allowMergeCommits`, `requireScope`, `maxCommits`.
+
+#### `ensureSharedConfigs(options?)`
+
+Audits packages for shared `@kitiumai/config` usage. Reports missing devDependencies, tsconfig extends, or ESLint references.
+
+#### `checkCodeownersCoverage(files?)`
+
+Ensures every changed file has a CODEOWNERS match. Provide explicit file paths or let it derive from `git status`.
+
+### Release Module
+
+#### `prepareReleaseNotes(options?)`
+
+Aggregates Changesets into entries grouped by `package` or `type` and returns rendered markdown.
+
+#### `verifyPublishState(options?)`
+
+Runs pre-publish commands (default `pnpm lint`, `pnpm test`, `pnpm build`) and surfaces any failures.
+
+#### `syncVersionTags(options?)`
+
+Confirms `package.json` version matches git tags and npm registry. Options: `packagePath`, `tagPrefix`, `registry`.
+
+### Operations Module
+
+#### `smokeServices(targets)`
+
+HTTP smoke tests for staging/prod endpoints. Each target supplies `name`, `url`, optional `method`, `expectedStatus`, `timeoutMs`.
+
+#### `rolloutGuard(input)`
+
+Applies release gating logic (error budgets, incidents, freezes, approvals) and returns `{ allow, reasons }`.
+
+#### `verifyLogSchemas(options?)`
+
+Validates logging schema files (default `schemas/logging`) contain required fields (e.g., `name`, `version`).
+
+### Automation Module
+
+#### `runBulkRepoTask(options)`
+
+Runs a command across multiple directories with concurrency control. Options: `command`, `targets`, `concurrency`, `stopOnError`.
+
+#### `validateEnv(options?)`
+
+Checks required environment variables and CLI dependencies (`cmd`, `args`, `minVersion`) before running workflows.
+
+#### `detectDrift(options)`
+
+Detects modified/untracked files for monitored paths using `git status`. Options: `paths`, `includeUntracked`.
+
 ## Project Structure
 
 ```
@@ -566,8 +636,18 @@ Measure execution time of an async function.
 │   │   └── index.ts             # Linting and formatting
 │   ├── git/
 │   │   └── index.ts             # Git operations
-│   └── deps/
-│       └── index.ts             # Deprecated dependency management
+│   ├── deps/
+│   │   └── index.ts             # Deprecated dependency management
+│   ├── security/
+│   │   └── index.ts             # Security & compliance
+│   ├── dx/
+│   │   └── index.ts             # Dev experience guardrails
+│   ├── release/
+│   │   └── index.ts             # Release automation
+│   ├── operations/
+│   │   └── index.ts             # Prod readiness checks
+│   └── automation/
+│       └── index.ts             # Fleet automation helpers
 ├── bin/
 │   ├── fix-deprecated-deps.js   # CLI for deprecated deps
 │   ├── set-npm-token.js
@@ -705,7 +785,7 @@ This package follows standards and best practices from:
 
 ## License
 
-Apache-2.0
+MIT
 
 ## Contributing
 

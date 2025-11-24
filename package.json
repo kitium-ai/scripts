@@ -1,8 +1,8 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
@@ -119,10 +119,10 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "prepublishOnly": "npm run build && npm run lint && npm run type-check",
     "publish:set-token": "node bin/set-npm-token.js",
-    "publish:setup": "node -e \"const fs=require('fs');const path=require('path');const os=require('os');const token=process.env.NPM_TOKEN;if(!token){console.error('Error: NPM_TOKEN environment variable not set');process.exit(1);}const isWindows=os.platform()==='win32';const homeNpmrc=path.join(os.homedir(),isWindows?'.npmrc':'.npmrc');let content='';if(fs.existsSync(homeNpmrc)){content=fs.readFileSync(homeNpmrc,'utf8');}const lines=content.split('\\n').filter(l=>!l.includes('//registry.npmjs.org/:_authToken'));lines.push('//registry.npmjs.org/:_authToken='+token);fs.writeFileSync(homeNpmrc,lines.join('\\n')+'\\n');console.log('✓ Updated user-level .npmrc with authentication');\"",
+    "publish:setup": "node bin/set-npm-token.js",
     "publish:check": "npm whoami --registry https://registry.npmjs.org || (echo 'Error: Not logged in to npm. Set NPM_TOKEN or run: npm login' && exit 1)",
-    "publish:package": "pnpm run publish:setup && pnpm publish --access public --no-git-checks --registry https://registry.npmjs.org",
-    "publish:dry-run": "pnpm run publish:setup && pnpm publish --access public --no-git-checks --dry-run --registry https://registry.npmjs.org",
+    "publish:package": "pnpm run publish:check && pnpm publish --access public --no-git-checks --registry https://registry.npmjs.org",
+    "publish:dry-run": "pnpm run publish:check && pnpm publish --access public --no-git-checks --dry-run --registry https://registry.npmjs.org",
     "changeset": "node bin/ensure-changeset.js && changeset",
     "changeset:init": "node bin/ensure-changeset.js"
   },
