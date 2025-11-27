@@ -48,7 +48,10 @@
     "add-ai-tokens": "./bin/add-ai-tokens.js",
     "add-npmrc": "./bin/add-npmrc.js",
     "ensure-changeset": "./bin/ensure-changeset.js",
-    "fix-deprecated-deps": "./bin/fix-deprecated-deps.js"
+    "fix-deprecated-deps": "./bin/fix-deprecated-deps.js",
+    "generate-sbom": "./bin/generate-sbom.js",
+    "sign-artifact": "./bin/sign-artifact.js",
+    "license-check": "./bin/license-check.js"
   },
   "exports": {
     ".": {

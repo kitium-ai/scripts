@@ -639,7 +639,10 @@ Detects modified/untracked files for monitored paths using `git status`. Options
 │   ├── deps/
 │   │   └── index.ts             # Deprecated dependency management
 │   ├── security/
-│   │   └── index.ts             # Security & compliance
+│   │   ├── index.ts             # Security & compliance
+│   │   ├── sbom.ts              # SBOM generation helpers
+│   │   ├── sign.ts              # Artifact signing & verification
+│   │   └── license-check.ts     # License policy enforcement
 │   ├── dx/
 │   │   └── index.ts             # Dev experience guardrails
 │   ├── release/
@@ -724,6 +727,42 @@ npx fix-deprecated-deps --fix --package=./packages/my-package
 **Known Fixes:**
 - `lodash.get` → Replaced with `lodash@^4.17.21`
 - `subscriptions-transport-ws` → Suggests updating parent package (`eslint-plugin-graphql`)
+
+### `generate-sbom`
+
+Generate a Software Bill of Materials (SBOM) using Syft or CycloneDX tooling.
+
+```bash
+# Generate a CycloneDX JSON SBOM for the current workspace
+npx generate-sbom --format cyclonedx-json
+
+# Use CycloneDX CLI and skip validation
+npx generate-sbom --tool cyclonedx --output ./artifacts/sbom.xml --format cyclonedx-xml --no-validate
+```
+
+### `sign-artifact`
+
+Sign or verify build artifacts using Cosign (default) or GPG.
+
+```bash
+# Sign a tarball with Cosign, writing signature to my-app.tar.gz.sig
+npx sign-artifact ./dist/my-app.tar.gz --key cosign.key
+
+# Verify a signature using GPG
+npx sign-artifact ./dist/my-app.tar.gz --signature ./dist/my-app.tar.gz.sig --tool gpg --verify
+```
+
+### `license-check`
+
+Enforce workspace license policies with optional allow/block lists.
+
+```bash
+# Use defaults across all workspaces
+npx license-check
+
+# Apply a custom policy file and ignore internal packages
+npx license-check --policy ./security-policy.json --ignore=@kitiumai/internal,@kitiumai/private
+```
 
 ### `ensure-changeset`
 
