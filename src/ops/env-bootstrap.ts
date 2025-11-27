@@ -61,7 +61,8 @@ async function loadManifest(manifestPath: string): Promise<EnvManifest> {
   try {
     return JSON.parse(content) as EnvManifest;
   } catch (error) {
-    throw new Error(`Failed to parse manifest at ${manifestPath}: ${error}`);
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse manifest at ${manifestPath}: ${reason}`);
   }
 }
 

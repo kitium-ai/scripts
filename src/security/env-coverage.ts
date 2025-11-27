@@ -1,5 +1,9 @@
 import { log } from '../utils/index.js';
 
+function isProcessEnv(value: unknown): value is Record<string, string | undefined> {
+  return typeof value === 'object' && value !== null;
+}
+
 export interface EnvCoverageResult {
   required: string[];
   provided: string[];
@@ -10,18 +14,19 @@ export interface EnvCoverageResult {
 
 export interface EnvCoverageOptions {
   requiredEnv: string[];
-  env?: NodeJS.ProcessEnv;
+  env?: Record<string, string | undefined>;
   allowEmpty?: boolean;
   verbose?: boolean;
 }
 
 export function diffEnvCoverage(options: EnvCoverageOptions): EnvCoverageResult {
-  const { requiredEnv, env = process.env, allowEmpty = false, verbose = true } = options;
-  const provided = Object.keys(env);
-  const missing = requiredEnv.filter((key) => !(key in env));
+  const { requiredEnv, allowEmpty = false, verbose = true } = options;
+  const envVars: Record<string, string | undefined> = isProcessEnv(options.env) ? options.env : process.env;
+  const provided = Object.keys(envVars);
+  const missing = requiredEnv.filter((key) => !(key in envVars));
   const empty = allowEmpty
     ? []
-    : requiredEnv.filter((key) => key in env && (env[key] ?? '') === '');
+    : requiredEnv.filter((key) => key in envVars && (envVars[key] ?? '') === '');
   const extraneous = provided.filter((key) => !requiredEnv.includes(key));
 
   const result: EnvCoverageResult = {

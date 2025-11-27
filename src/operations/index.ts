@@ -37,14 +37,15 @@ export async function smokeServices(targets: SmokeTarget[]): Promise<SmokeResult
         log('warn', `Smoke check failed for ${target.name}: status ${response.status}.`);
       }
     } catch (error) {
-      results.push({
+      const result: SmokeResult = {
         name: target.name,
         url: target.url,
         status: 0,
         ok: false,
         error: error instanceof Error ? error.message : String(error),
-      });
-      log('error', `Smoke check error for ${target.name}: ${results.at(-1)?.error}`);
+      };
+      results.push(result);
+      log('error', `Smoke check error for ${target.name}: ${result.error}`);
     } finally {
       clearTimeout(timeout);
     }

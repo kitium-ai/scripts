@@ -57,20 +57,22 @@ const DEFAULT_ENVIRONMENT_LEVELS: Record<string, string> = {
   production: 'warn',
 };
 
+type KitiumLoggerFactory = (options: {
+  serviceName: string;
+  environment?: string;
+  level?: string;
+  otlpEndpoint?: string;
+  redact?: string[];
+  format?: 'json' | 'pretty';
+  includeContext?: Record<string, unknown>;
+}) => StructuredLogger & {
+  child?: (bindings: Record<string, unknown>) => StructuredLogger;
+  log?: (level: string, message: string, meta?: Record<string, unknown>) => void;
+};
+
 interface KitiumLoggerModule {
-  createLogger?: (options: {
-    serviceName: string;
-    environment?: string;
-    level?: string;
-    otlpEndpoint?: string;
-    redact?: string[];
-    format?: 'json' | 'pretty';
-    includeContext?: Record<string, unknown>;
-  }) => StructuredLogger & {
-    child?: (bindings: Record<string, unknown>) => StructuredLogger;
-    log?: (level: string, message: string, meta?: Record<string, unknown>) => void;
-  };
-  default?: KitiumLoggerModule;
+  createLogger?: KitiumLoggerFactory;
+  default?: { createLogger?: KitiumLoggerFactory };
 }
 
 export async function bootstrapStructuredLogging(options: LoggingBootstrapOptions): Promise<string> {
@@ -138,21 +140,25 @@ export async function bootstrapStructuredLogging(options: LoggingBootstrapOption
 
 function bindContext<T extends StructuredLogger>(loggerInstance: T, context: StructuredLoggerContext) {
   const metadata = context ?? {};
-  const emit = (level: keyof StructuredLogger, message: string, meta?: Record<string, unknown>) => {
-    const payload = { ...metadata, ...meta };
-    const levelMethod = loggerInstance[level];
-    const genericLog = (loggerInstance as { log?: StructuredLogger['info'] }).log;
+    const emit = (level: keyof StructuredLogger, message: string, meta?: Record<string, unknown>) => {
+      const payload = { ...metadata, ...meta };
+      const levelMethod = loggerInstance[level];
+      const genericLog:
+        | ((level: string, message: string, meta?: Record<string, unknown>) => void)
+        | undefined = (loggerInstance as {
+        log?: (level: string, message: string, meta?: Record<string, unknown>) => void;
+      }).log;
 
     if (typeof levelMethod === 'function') {
       levelMethod(message, payload);
       return;
     }
 
-    if (typeof genericLog === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (genericLog as any)(level === 'fatal' ? 'fatal' : level, message, payload);
-      return;
-    }
+      if (typeof genericLog === 'function') {
+        const normalizedLevel = level === 'fatal' ? 'fatal' : level;
+        genericLog(normalizedLevel, message, payload);
+        return;
+      }
 
     if (typeof loggerInstance.info === 'function') {
       loggerInstance.info(message, payload);
@@ -175,8 +181,17 @@ function bindContext<T extends StructuredLogger>(loggerInstance: T, context: Str
 
 export async function createStructuredLogger(options: StructuredLoggerOptions): Promise<StructuredLogger> {
   const kitiumLoggerModule: KitiumLoggerModule = (await import('@kitiumai/logger')) as KitiumLoggerModule;
-  const kitiumFactory =
-    kitiumLoggerModule?.createLogger ?? kitiumLoggerModule?.default?.createLogger ?? kitiumLoggerModule?.default;
+  const resolveFactory = (module: KitiumLoggerModule): KitiumLoggerModule['createLogger'] | undefined => {
+    if (typeof module.createLogger === 'function') {
+      return module.createLogger;
+    }
+    if (typeof module.default?.createLogger === 'function') {
+      return module.default.createLogger;
+    }
+    return undefined;
+  };
+
+  const kitiumFactory = resolveFactory(kitiumLoggerModule);
 
   if (typeof kitiumFactory !== 'function') {
     throw new Error('Expected @kitiumai/logger to export createLogger(options)');
