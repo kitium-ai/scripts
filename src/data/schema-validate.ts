@@ -44,7 +44,6 @@ export interface SchemaValidationResult {
 }
 
 function formatValue(value: unknown): string {
-  if (value === null) return 'null';
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
   }
