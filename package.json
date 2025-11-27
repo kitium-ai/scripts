@@ -1,6 +1,6 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
   "license": "MIT",
   "publishConfig": {
@@ -26,19 +26,25 @@
     "security",
     "npm",
     "token",
+    "npmrc",
     "ai",
     "openai",
     "anthropic",
     "gemini",
     "deepseek",
+    "secrets",
+    "cli",
+    "devops",
+    "release",
     "config",
-    "cli"
+    "setup"
   ],
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -121,10 +127,10 @@
     }
   },
   "files": [
-    "bin",
-    "dist",
-    "src",
+    "bin/",
+    "dist/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -134,8 +140,8 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist node_modules",
     "test": "node --test dist/**/*.test.js",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "prepublishOnly": "npm run build && npm run lint && npm run type-check",
@@ -154,10 +160,12 @@
     "fs-extra": "^11.3.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "@typescript-eslint/parser": "^8.16.0",
     "eslint": "^9.15.0",
+    "globals": "^16.5.0",
     "prettier": "^3.6.2",
     "typescript": "^5.6.0"
   }

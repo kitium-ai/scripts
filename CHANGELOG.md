@@ -10,6 +10,12 @@
 - New package exports (`security`, `dx`, `release`, `operations`, `automation`) for tree-shakable imports.
 # Changelog
 
+## 1.0.0
+
+- Added `add-ai-tokens` interactive helper to capture OpenAI, Anthropic Claude, Google Gemini, and DeepSeek keys into `~/.kitiumai/ai-tokens.json`.
+- Hardened npm auth setup: `add-npmrc` now prompts for a token (no hardcoded defaults) and saves to local/user `.npmrc`.
+- General scripts toolkit improvements for security and publish readiness.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
