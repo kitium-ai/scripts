@@ -136,6 +136,8 @@ import {
   smokeServices,
   rolloutGuard,
   verifyLogSchemas,
+  bootstrapEnvFromManifest,
+  validateInfrastructure,
   runBulkRepoTask,
   validateEnv,
   detectDrift,
@@ -191,6 +193,23 @@ await validateEnv({ requiredEnv: ['NPM_TOKEN'], requiredCommands: [{ cmd: 'pnpm'
 
 // Compare required vs actual env coverage
 ensureEnvCoverage({ requiredEnv: ['NPM_TOKEN', 'CI'], allowEmpty: false });
+
+// Scaffold environment assets (.env.example, Compose files, and port maps)
+await bootstrapEnvFromManifest({
+  manifestPath: './ops/manifest.json',
+  composeDir: './ops/compose',
+});
+
+// Run IaC validations across Terraform, Terragrunt, CloudFormation, and policy packs
+await validateInfrastructure({
+  terraformDirs: ['infra/terraform'],
+  terragruntDirs: ['infra/terragrunt'],
+  cloudformationTemplates: ['infra/cfn/template.yaml'],
+  policyPacks: [
+    { engine: 'conftest', policies: ['policy'], targets: ['infra/terraform'], args: ['--namespace', 'prod'] },
+    { engine: 'opa', policies: ['policy'], targets: ['infra/cfn/template.yaml'], query: 'data.main.deny == []' },
+  ],
+});
 ```
 
 ## Security workflows & CI examples

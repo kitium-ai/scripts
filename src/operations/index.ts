@@ -150,3 +150,6 @@ async function exists(dir: string): Promise<boolean> {
   }
 }
 
+export * from '../ops/env-bootstrap.js';
+export * from '../ops/iac-validate.js';
+
