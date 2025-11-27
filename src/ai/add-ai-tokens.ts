@@ -3,6 +3,8 @@ import { promises as fsp } from 'fs';
 import path from 'path';
 import os from 'os';
 import readline from 'readline';
+import type { Readable, Writable } from 'node:stream';
+import type { WriteStream } from 'node:tty';
 import chalk from 'chalk';
 
 const CONFIG_DIR = path.join(os.homedir(), '.kitiumai');
@@ -56,14 +58,14 @@ function prompt(question: string, mask = false): Promise<string> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-    }) as readline.Interface & { output?: NodeJS.WritableStream; input: NodeJS.ReadableStream };
+    }) as readline.Interface & { output?: Writable; input: Readable };
 
-    const out = rl.output as NodeJS.WriteStream | undefined;
+    const out = rl.output as WriteStream | undefined;
 
-    if (mask && out && 'isTTY' in out && (out as NodeJS.WriteStream).isTTY) {
-      out.write(question);
-      rl.input.on('data', (char: Buffer | string) => {
-        const ch = `${char}`;
+      if (mask && out && 'isTTY' in out && out.isTTY) {
+        out.write(question);
+        rl.input.on('data', (char: Buffer | string) => {
+          const ch = typeof char === 'string' ? char : char.toString();
         switch (ch) {
           case '\n':
           case '\r':

@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { exec, log } from '../utils/index.js';
 
-export type RotationProvider = 'aws' | 'gcp' | 'vault' | string;
+export type RotationProvider = 'aws' | 'gcp' | 'vault' | (string & { __brand?: 'rotation-provider' });
 
 export interface RotationRequest {
   secretId: string;

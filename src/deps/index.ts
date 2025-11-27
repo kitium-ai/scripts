@@ -140,10 +140,10 @@ export function checkDeprecatedDeps(packageJsonPath: string): Promise<Deprecated
           }
         }
       }
-    } catch (error) {
-      // Audit might fail, try alternative method
-      log('warn', 'Could not run audit, trying alternative method...');
-    }
+      } catch {
+        // Audit might fail, try alternative method
+        log('warn', 'Could not run audit, trying alternative method...');
+      }
     
     // Check known deprecated packages
     for (const [depName, fixInfo] of Object.entries(DEPRECATED_FIXES)) {
@@ -176,10 +176,10 @@ export function checkDeprecatedDeps(packageJsonPath: string): Promise<Deprecated
             fixInfo
           });
         }
-      } catch (error) {
-        // Package not found, skip
+        } catch {
+          // Package not found, skip
+        }
       }
-    }
     
   } catch (error) {
     log('error', `Error checking deprecated dependencies: ${error instanceof Error ? error.message : String(error)}`);

@@ -234,11 +234,11 @@ export async function setNpmToken(
       } else {
         log('warn', 'Could not verify authentication. Please run: npm whoami');
       }
-    } catch (error) {
-      log('warn', 'Could not verify authentication. Please run: npm whoami');
+      } catch {
+        log('warn', 'Could not verify authentication. Please run: npm whoami');
+      }
     }
   }
-}
 
 /**
  * Add .npmrc configuration to current package directory

@@ -43,6 +43,23 @@ export interface SchemaValidationResult {
   drift?: SchemaDrift[];
 }
 
+function formatValue(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    if (typeof value === 'object') {
+      return '[unserializable object]';
+    }
+    return `[${typeof value} value]`;
+  }
+}
+
 function detectType(value: unknown): FieldType {
   if (value === null || value === undefined) return 'null';
   if (Array.isArray(value)) return 'array';
@@ -68,7 +85,7 @@ async function loadDataset(dataset?: Array<Record<string, unknown>>, datasetPath
 
   const content = await fs.readFile(datasetPath, 'utf-8');
   try {
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content) as unknown;
     if (Array.isArray(parsed)) {
       return parsed as Array<Record<string, unknown>>;
     }
@@ -76,7 +93,8 @@ async function loadDataset(dataset?: Array<Record<string, unknown>>, datasetPath
       return ((parsed as { data: unknown[] }).data as Array<Record<string, unknown>>);
     }
   } catch (error) {
-    throw new Error(`Failed to parse dataset: ${(error as Error).message}`);
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to parse dataset: ${reason}`);
   }
 
   throw new Error('Dataset file must contain an array or an object with a data array');
@@ -150,7 +168,9 @@ function validateRecord(
     }
 
     if (config.enum && !config.enum.includes(value as never)) {
-      errors.push(`Field "${field}" value ${String(value)} is not in allowed enum: ${config.enum.join(', ')}.`);
+      errors.push(
+        `Field "${field}" value ${formatValue(value)} is not in allowed enum: ${config.enum.join(', ')}.`,
+      );
     }
   }
 
