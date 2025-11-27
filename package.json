@@ -104,6 +104,11 @@
       "require": "./dist/release/index.js",
       "types": "./dist/release/index.d.ts"
     },
+    "./observability": {
+      "import": "./dist/observability/index.js",
+      "require": "./dist/observability/index.js",
+      "types": "./dist/observability/index.d.ts"
+    },
     "./operations": {
       "import": "./dist/operations/index.js",
       "require": "./dist/operations/index.js",

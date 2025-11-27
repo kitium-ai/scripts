@@ -14,6 +14,7 @@ A comprehensive collection of reusable scripts and utilities for the Kitium AI o
 - **Developer Experience Guardrails**: Conventional commit validation, shared config enforcement, CODEOWNERS verification
 - **Release Automation**: Changeset aggregation, prepublish verification, git/npm version sync
 - **Operational Readiness**: Service smoke tests, rollout guards, log schema validation
+- **Observability**: Structured logging bootstrapper that wraps the Kitium logger with OTEL-friendly context and redaction defaults
 - **Fleet Automation**: Bulk repo task runner, environment validation, drift detection
 
 ## Installation
@@ -138,6 +139,8 @@ import {
   runBulkRepoTask,
   validateEnv,
   detectDrift,
+  bootstrapStructuredLogging,
+  createStructuredLogger,
 } from '@kitiumai/scripts';
 
 // Execute commands
@@ -152,6 +155,18 @@ log('info', 'Starting deployment');
 log('success', 'Build completed');
 log('warn', 'Deprecated API');
 log('error', 'Failed to connect');
+
+// Bootstrap shared logging config (writes .kitium/logging.config.json)
+await bootstrapStructuredLogging({ serviceName: 'payments-api', includeExample: true });
+
+// Create an OTEL-aware logger instance on top of @kitiumai/logger
+const structuredLogger = await createStructuredLogger({
+  serviceName: 'payments-api',
+  environment: process.env.NODE_ENV,
+  otlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+  context: { traceId: 'trace_abc', requestId: 'req_123' },
+});
+structuredLogger.info('service started', { port: 3000 });
 
 // Measure execution time
 await measure('Build', async () => {
