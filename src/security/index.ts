@@ -354,3 +354,7 @@ export async function checkPolicyCompliance(
   return { passed, violations, checkedLicenses };
 }
 
+export * from './sbom.js';
+export * from './sign.js';
+export * from './license-check.js';
+
