@@ -185,10 +185,9 @@ export async function setNpmToken(
   options: { verify?: boolean } = {}
 ): Promise<void> {
   const { verify = true } = options;
-  
-  // Get token from parameter, env var, or default
-  const DEFAULT_TOKEN = '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';
-  const npmToken = token || getEnv('NPM_TOKEN', DEFAULT_TOKEN);
+
+  // Get token from parameter or env var; never use hardcoded defaults
+  const npmToken = token || getEnv('NPM_TOKEN', '');
 
   if (!npmToken) {
     throw new Error('NPM_TOKEN is required');

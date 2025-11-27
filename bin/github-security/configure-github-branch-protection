@@ -24,6 +24,11 @@ GITHUB_REPO="${GITHUB_REPO:-}"
 BRANCH="main"
 DRY_RUN="${DRY_RUN:-false}"
 VERBOSE="${VERBOSE:-false}"
+HAS_GH_CLI="false"
+
+if command -v gh >/dev/null 2>&1; then
+    HAS_GH_CLI="true"
+fi
 
 ###############################################################################
 # Helper Functions
@@ -61,7 +66,7 @@ USAGE:
 OPTIONS:
     --repo OWNER/REPO       GitHub repository (owner/name format)
     --branch BRANCH         Branch name (default: main)
-    --token TOKEN          GitHub API token (or use GITHUB_TOKEN env var)
+    --token TOKEN          GitHub API token (or use GITHUB_TOKEN env var / gh CLI auth)
     --dry-run              Preview changes without applying them
     --verbose              Enable verbose output
     --help                 Show this help message
@@ -93,9 +98,9 @@ EOF
 check_requirements() {
     log_info "Checking requirements..."
 
-    if [[ -z "$GITHUB_TOKEN" ]]; then
-        log_error "GitHub token not provided"
-        log_info "Set GITHUB_TOKEN environment variable or use --token option"
+    if [[ -z "$GITHUB_TOKEN" && "$HAS_GH_CLI" != "true" ]]; then
+        log_error "Authentication missing: provide a GitHub token or install/authenticate gh CLI"
+        log_info "Set GITHUB_TOKEN environment variable, use --token option, or login via 'gh auth login'"
         exit 1
     fi
 
@@ -159,11 +164,27 @@ gh_api_put() {
     fi
 
     local response
-    response=$(curl -s -X PUT \
-        -H "Authorization: token $GITHUB_TOKEN" \
-        -H "Accept: application/vnd.github.v3+json" \
-        -d "$data" \
-        "https://api.github.com$endpoint")
+
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        response=$(curl -s -X PUT \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "$data" \
+            "https://api.github.com$endpoint")
+    else
+        if [[ "$HAS_GH_CLI" != "true" ]]; then
+            log_error "GitHub CLI not available and no token provided"
+            return 1
+        fi
+
+        if ! response=$(echo "$data" | gh api "$endpoint" \
+            --method PUT \
+            -H "Accept: application/vnd.github.v3+json" \
+            --input -); then
+            log_error "GitHub CLI command failed"
+            return 1
+        fi
+    fi
 
     log_debug "Response: $response"
 
@@ -275,6 +296,11 @@ main() {
     log_info "  Repository: $GITHUB_REPO"
     log_info "  Branch: $BRANCH"
     log_info "  Dry Run: $DRY_RUN"
+    if [[ -n "$GITHUB_TOKEN" ]]; then
+        log_info "  Auth Method: Personal access token"
+    else
+        log_info "  Auth Method: GitHub CLI"
+    fi
     echo
 
     if [[ "$DRY_RUN" == "true" ]]; then

@@ -1,6 +1,6 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
   "license": "MIT",
   "publishConfig": {
@@ -20,7 +20,19 @@
     "utilities",
     "build",
     "development",
-    "tooling"
+    "tooling",
+    "automation",
+    "github",
+    "security",
+    "npm",
+    "token",
+    "ai",
+    "openai",
+    "anthropic",
+    "gemini",
+    "deepseek",
+    "config",
+    "cli"
   ],
   "engines": {
     "node": ">=18.0.0",
@@ -33,6 +45,7 @@
     "setup-github-security": "./bin/github-security/setup-github-security",
     "configure-github-branch-protection": "./bin/github-security/configure-github-branch-protection",
     "set-npm-token": "./bin/set-npm-token.js",
+    "add-ai-tokens": "./bin/add-ai-tokens.js",
     "add-npmrc": "./bin/add-npmrc.js",
     "ensure-changeset": "./bin/ensure-changeset.js",
     "fix-deprecated-deps": "./bin/fix-deprecated-deps.js"
@@ -127,17 +140,17 @@
     "changeset:init": "node bin/ensure-changeset.js"
   },
   "dependencies": {
-    "chalk": "^4.1.2",
+    "chalk": "^5.3.0",
     "commander": "^14.0.2",
-    "execa": "^5.1.1",
+    "execa": "^8.0.1",
     "fs-extra": "^11.3.2"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.54.0",
-    "prettier": "^3.1.0",
-    "typescript": "^5.3.0"
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.16.0",
+    "@typescript-eslint/parser": "^8.16.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.6.0"
   }
 }

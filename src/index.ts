@@ -21,3 +21,4 @@ export * from './dx/index.js';
 export * from './release/index.js';
 export * from './operations/index.js';
 export * from './automation/index.js';
+export * from './ai/add-ai-tokens.js';
