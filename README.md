@@ -682,6 +682,14 @@ Ensures every changed file has a CODEOWNERS match. Provide explicit file paths o
 
 Aggregates Changesets into entries grouped by `package` or `type` and returns rendered markdown.
 
+#### `lintFlags(options)`
+
+Lints LaunchDarkly or ConfigCat feature flag configurations, ensuring keys, descriptions, tags, and targeting are present. Surfaces archived, inactive, or unreferenced flags via `deadFlags` to highlight cleanup opportunities.
+
+#### `evaluateCanary(options)`
+
+Evaluates canary error rate and latency against absolute and relative thresholds (when a baseline is provided). Returns `{ healthy, reasons }` for rollout gating.
+
 #### `verifyPublishState(options?)`
 
 Runs pre-publish commands (default `pnpm lint`, `pnpm test`, `pnpm build`) and surfaces any failures.
@@ -689,6 +697,12 @@ Runs pre-publish commands (default `pnpm lint`, `pnpm test`, `pnpm build`) and s
 #### `syncVersionTags(options?)`
 
 Confirms `package.json` version matches git tags and npm registry. Options: `packagePath`, `tagPrefix`, `registry`.
+
+#### Recommended CI gates for releases
+
+- Run `lintFlags` against LaunchDarkly/ConfigCat exports and pass `referencedFlags` from code search to catch dead toggles before shipping.
+- Use `evaluateCanary` after partial rollout with thresholds such as `{ maxErrorRate: 1, maxLatencyP99: 900, maxLatencyIncreasePct: 30 }` to block unhealthy deployments.
+- Keep `verifyPublishState` and `syncVersionTags` in release pipelines to fail fast on missing builds or mismatched versions.
 
 ### Operations Module
 

@@ -1,6 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { exec, findFiles, log } from '../utils/index.js';
+export * from './flag-lint.js';
+export * from './canary-check.js';
 
 export interface ReleaseNotesOptions {
   changesetDir?: string;
