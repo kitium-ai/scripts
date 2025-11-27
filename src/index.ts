@@ -23,3 +23,4 @@ export * from './operations/index.js';
 export * from './automation/index.js';
 export * from './ai/add-ai-tokens.js';
 export * from './observability/index.js';
+export * from './data/index.js';

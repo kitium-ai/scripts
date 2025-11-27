@@ -11,6 +11,7 @@ A comprehensive collection of reusable scripts and utilities for the Kitium AI o
 - **Dependency Management**: Detect and fix deprecated dependencies automatically
 - **Core Utils**: Command execution, file operations, logging, environment handling
 - **Security & Compliance**: Secret scanning orchestration, dependency audits, policy enforcement
+- **Data Quality & Privacy**: PII scanning, dataset schema validation, and drift alerts
 - **Developer Experience Guardrails**: Conventional commit validation, shared config enforcement, CODEOWNERS verification
 - **Release Automation**: Changeset aggregation, prepublish verification, git/npm version sync
 - **Operational Readiness**: Service smoke tests, rollout guards, log schema validation
@@ -210,6 +211,40 @@ await validateInfrastructure({
     { engine: 'opa', policies: ['policy'], targets: ['infra/cfn/template.yaml'], query: 'data.main.deny == []' },
   ],
 });
+```
+
+### Data Quality & Privacy
+
+```typescript
+import { scanPii, validateDatasetSchema } from '@kitiumai/scripts/data';
+
+// Scan source code and sample datasets for PII patterns
+const piiResult = await scanPii({
+  roots: ['src', 'datasets'],
+  includeExtensions: ['.ts', '.json', '.csv'],
+  failOnFinding: true,
+  rules: [
+    {
+      id: 'internal-id',
+      description: 'Legacy customer IDs',
+      regex: /CUST-[0-9]{6}/,
+      severity: 'low',
+    },
+  ],
+});
+
+// Validate dataset contracts and alert on schema drift
+const validation = await validateDatasetSchema({
+  datasetPath: 'datasets/sample.json',
+  schemaPath: 'schemas/customer-schema.json',
+  driftBaselinePath: 'schemas/baseline-profile.json',
+  allowAdditionalFields: false,
+  failOnError: true,
+});
+
+if (!validation.valid) {
+  console.error(validation.errors);
+}
 ```
 
 ## Security workflows & CI examples
@@ -667,6 +702,16 @@ Get environment variable or throw if not set.
 
 Measure execution time of an async function.
 
+### Data Module
+
+#### `scanPii(options?)`
+
+Scans code, configuration, and sample datasets for common PII patterns using configurable regex rules, size limits, and fail-on-finding behavior.
+
+#### `validateDatasetSchema(options)`
+
+Validates datasets against a schema definition (inline or from disk) and compares profiles against a baseline to surface drift.
+
 ### Security Module
 
 #### `scanSecrets(options?)`
@@ -774,6 +819,10 @@ Detects modified/untracked files for monitored paths using `git status`. Options
 │   │   ├── sbom.ts              # SBOM generation helpers
 │   │   ├── sign.ts              # Artifact signing & verification
 │   │   └── license-check.ts     # License policy enforcement
+│   ├── data/
+│   │   ├── index.ts             # Data quality helpers
+│   │   ├── pii-scan.ts          # PII scanning utilities
+│   │   └── schema-validate.ts   # Schema validation and drift detection
 │   ├── dx/
 │   │   └── index.ts             # Dev experience guardrails
 │   ├── release/
