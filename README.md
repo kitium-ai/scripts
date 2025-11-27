@@ -188,6 +188,89 @@ await smokeServices([{ name: 'API', url: 'https://api.example.com/health' }]);
 
 // Validate environment before running bulk operations
 await validateEnv({ requiredEnv: ['NPM_TOKEN'], requiredCommands: [{ cmd: 'pnpm', minVersion: '9.0.0' }] });
+
+// Compare required vs actual env coverage
+ensureEnvCoverage({ requiredEnv: ['NPM_TOKEN', 'CI'], allowEmpty: false });
+```
+
+## Security workflows & CI examples
+
+### Pre-commit secret scanning
+
+- Add a hook that prefers gitleaks but falls back to `npx` if the binary is missing:
+
+```typescript
+import { installSecretScanHook, runPrecommitSecretScan } from '@kitiumai/scripts/security';
+
+// Create .git/hooks/pre-commit that runs gitleaks detect --staged
+await installSecretScanHook({ scanner: 'gitleaks', includeUntracked: true });
+
+// Or run directly in CI to block secret leaks
+await runPrecommitSecretScan({ scanner: 'trufflehog', configPath: '.trufflehog.yml' });
+```
+
+### Environment coverage guardrails
+
+`diffEnvCoverage` compares required variables against the runtime environment and returns missing, empty, and extraneous entries. `ensureEnvCoverage` throws if anything is missing or empty.
+
+```typescript
+import { ensureEnvCoverage } from '@kitiumai/scripts/security';
+
+ensureEnvCoverage({ requiredEnv: ['CI', 'NPM_TOKEN', 'AWS_REGION'], allowEmpty: false });
+```
+
+### Pluggable rotation adapters
+
+Use `rotateSecret` with AWS, GCP, or Vault adapters and wrap with pre/post hooks to add notifications or metrics.
+
+```typescript
+import {
+  createAwsSecretsManagerAdapter,
+  createGcpSecretManagerAdapter,
+  createVaultAdapter,
+  rotateSecret,
+} from '@kitiumai/scripts/security';
+
+await rotateSecret({
+  secretId: 'service/api-key',
+  adapter: createAwsSecretsManagerAdapter(process.env.AWS_REGION),
+  before: [() => console.log('starting rotation')],
+  after: [() => console.log('rotation complete')],
+});
+
+await rotateSecret({
+  secretId: 'projects/demo/secrets/api-key',
+  metadata: { payload: 'new-value' },
+  adapter: createGcpSecretManagerAdapter('demo-project'),
+});
+
+await rotateSecret({
+  secretId: 'payments/api-key',
+  metadata: { value: 'rotated', rotatedBy: 'pipeline' },
+  adapter: createVaultAdapter('kv'),
+});
+```
+
+### GitHub Actions snippets
+
+```yaml
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Pre-commit secret scan (gitleaks)
+        run: node -e "import('@kitiumai/scripts').then(m=>m.runPrecommitSecretScan());"
+      - name: Validate env coverage
+        run: node -e "import('@kitiumai/scripts').then(m=>m.ensureEnvCoverage({requiredEnv:['CI','NPM_TOKEN']}));"
+      - name: Rotate secret via Vault
+        env:
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        run: node -e "import('@kitiumai/scripts').then(m=>m.rotateSecret({secretId:'apps/api',metadata:{rotatedBy:'gha'},adapter:m.createVaultAdapter('kv')}));"
 ```
 
 ## API Reference

@@ -357,4 +357,7 @@ export async function checkPolicyCompliance(
 export * from './sbom.js';
 export * from './sign.js';
 export * from './license-check.js';
+export * from './precommit-secrets.js';
+export * from './env-coverage.js';
+export * from './rotate.js';
 
