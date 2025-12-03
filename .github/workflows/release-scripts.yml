@@ -30,6 +30,7 @@ jobs:
 
       - name: Setup Git
         run: |
+          id-token: write
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
@@ -148,12 +149,42 @@ jobs:
           # Write ~/.npmrc for auth (preferred for npm CLI)
           mkdir -p "$HOME"
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$HOME/.npmrc"
+        - name: Setup NPM authentication (Trusted Publishing)
+          if: ${{ inputs.use_trusted_publishing != 'false' }}
+          run: |
+            WORKDIR="tooling/scripts"
+            if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
+            # With id-token: write, npm can use OIDC to bypass OTP when publisher trust is configured.
+            # No token needed here; provenance will attach build attestation.
+            echo "Using npm trusted publishing with GitHub OIDC"
+            npm config set registry https://registry.npmjs.org/
+
+        - name: Setup NPM authentication (Token fallback)
+          if: ${{ inputs.use_trusted_publishing == 'false' }}
+          env:
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          run: |
+            WORKDIR="tooling/scripts"
+            if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
+            if [ -z "$NPM_TOKEN" ]; then
+              echo "❌ NPM_TOKEN missing and trusted publishing disabled."
+              exit 1
+            fi
+            mkdir -p "$HOME"
+            echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$HOME/.npmrc"
+            echo "always-auth=true" >> "$HOME/.npmrc"
+            npm config set registry https://registry.npmjs.org/
           echo "always-auth=true" >> "$HOME/.npmrc"
           npm config set registry https://registry.npmjs.org/
 
           # Also add project-level .npmrc as fallback
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
-          echo "always-auth=true" >> .npmrc
+            # For trusted publishing, include provenance to use OIDC and bypass OTP
+            if [ "${{ inputs.use_trusted_publishing != 'false' }}" = "true" ]; then
+              npm publish --access public --provenance
+            else
+              npm publish --access public
+            fi
 
           # Verify auth; if whoami fails, print helpful guidance
           if ! npm whoami --registry https://registry.npmjs.org/ >/dev/null 2>&1; then
