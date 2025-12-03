@@ -84,8 +84,37 @@ export async function getCommitHistory(limit = 10): Promise<string[]> {
  * @param branch Branch name
  * @param remote Remote name (default: origin)
  */
+
+/**
+ * Validate that the git ref name (branch, remote) is safe to use as a CLI argument.
+ * - Must not begin with a dash.
+ * - Should only contain valid git refname characters.
+ * - See: https://git-scm.com/docs/git-check-ref-format
+ */
+function isValidRefName(ref: string): boolean {
+  // Disallow leading dash, must be non-empty, and allow only git ref chars
+  // This is a relatively strict pattern for typical use-cases; modify as needed.
+  return (
+    typeof ref === 'string' &&
+    ref.length > 0 &&
+    !ref.startsWith('-') &&
+    /^[A-Za-z0-9._\/-]+$/.test(ref) &&
+    // No double dots, no '@{' sequence, does not end with dot, slash, or .lock
+    !ref.includes('..') &&
+    !ref.includes('@{') &&
+    !/[/.]$/.test(ref) &&
+    !ref.endsWith('.lock')
+  );
+}
+
 export async function push(branch?: string, remote = 'origin'): Promise<void> {
   const branchName = branch || (await getCurrentBranch());
+  if (!isValidRefName(branchName)) {
+    throw new Error(`Invalid branch name: ${branchName}`);
+  }
+  if (!isValidRefName(remote)) {
+    throw new Error(`Invalid remote name: ${remote}`);
+  }
   await exec('git', ['push', '-u', remote, branchName]);
   log('success', `Pushed to ${remote}/${branchName}`);
 }
@@ -95,6 +124,12 @@ export async function push(branch?: string, remote = 'origin'): Promise<void> {
  * @param branch Branch name
  * @param remote Remote name (default: origin)
  */
+  if (!isValidRefName(branchName)) {
+    throw new Error(`Invalid branch name: ${branchName}`);
+  }
+  if (!isValidRefName(remote)) {
+    throw new Error(`Invalid remote name: ${remote}`);
+  }
 export async function pull(branch?: string, remote = 'origin'): Promise<void> {
   const branchName = branch || (await getCurrentBranch());
   await exec('git', ['pull', remote, branchName]);
