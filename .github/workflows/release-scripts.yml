@@ -133,6 +133,8 @@ jobs:
           fi
 
       - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
