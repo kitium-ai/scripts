@@ -17,13 +17,13 @@ on:
           - minor
           - major
 
+permissions:
+  contents: write
+
 jobs:
   tag-release:
     name: "Create Release Tag"
     runs-on: ubuntu-latest
-    container:
-      image: docker.io/ashishyd/kitiumai-dev:latest
-      options: --user node
 
     steps:
       - name: Checkout
@@ -37,6 +37,18 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
 
       - name: Validate version format
         run: |
@@ -60,14 +72,6 @@ jobs:
             echo "✅ Tag $TAG is available"
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: /home/node/.local/share/pnpm/store
-          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
