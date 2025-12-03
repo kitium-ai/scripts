@@ -133,12 +133,10 @@ jobs:
           fi
 
       - name: Publish to NPM
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          # Use provenance for trusted publishing (bypasses OTP via OIDC)
+          # Trusted Publishing via GitHub OIDC (no tokens/2FA required)
           npm publish --access public --provenance
 
       - name: Generate SBOM
