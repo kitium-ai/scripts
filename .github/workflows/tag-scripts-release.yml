@@ -123,10 +123,17 @@ jobs:
 
       - name: Commit version bump
         run: |
-          if git diff --quiet tooling/scripts/package.json; then
+          # Determine the package.json path
+          if [ -f "tooling/scripts/package.json" ]; then
+            PKG_PATH="tooling/scripts/package.json"
+          else
+            PKG_PATH="package.json"
+          fi
+          
+          if git diff --quiet "$PKG_PATH"; then
             echo "ℹ️ No changes to commit"
           else
-            git add tooling/scripts/package.json
+            git add "$PKG_PATH"
             git commit -m "chore: bump @kitiumai/scripts to v${{ inputs.version }}"
             git push origin main
           fi
