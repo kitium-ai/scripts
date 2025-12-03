@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+cd tooling/scripts
+
+echo "🧪 Running pre-commit checks for tooling/scripts..."
+
+# Run type checking
+echo "📝 Type checking..."
+pnpm run type-check || {
+  echo "❌ Type check failed. Fix errors before committing."
+  exit 1
+}
+
+# Run linting
+echo "🔍 Linting..."
+pnpm run lint || {
+  echo "❌ Lint check failed. Run 'pnpm run lint:fix' to auto-fix."
+  exit 1
+}
+
+# Run tests
+echo "🧪 Running tests..."
+pnpm run test || {
+  echo "❌ Tests failed. Fix failing tests before committing."
+  exit 1
+}
+
+echo "✅ All pre-commit checks passed!"

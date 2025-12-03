@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm test:*)",
+      "Bash(git -C \"C:\\Users\\vibha\\Desktop\\KitiumAI\\tooling\\scripts\" status)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

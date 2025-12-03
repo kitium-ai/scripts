@@ -1,6 +1,6 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
   "license": "MIT",
   "publishConfig": {
@@ -37,7 +37,9 @@
     "devops",
     "release",
     "config",
-    "setup"
+    "setup",
+    "kitiumai",
+    "kitium"
   ],
   "engines": {
     "node": ">=18.0.0",
@@ -56,6 +58,8 @@
     "ensure-changeset": "./bin/ensure-changeset.js",
     "fix-deprecated-deps": "./bin/fix-deprecated-deps.js",
     "generate-sbom": "./bin/generate-sbom.js",
+    "kitium-security-check": "./bin/security-check.js",
+    "kitium-license-check": "./bin/license-compliance.js",
     "sign-artifact": "./bin/sign-artifact.js",
     "license-check": "./bin/license-check.js"
   },
@@ -124,6 +128,21 @@
       "import": "./dist/automation/index.js",
       "require": "./dist/automation/index.js",
       "types": "./dist/automation/index.d.ts"
+    },
+    "./ai": {
+      "import": "./dist/ai/index.js",
+      "require": "./dist/ai/index.js",
+      "types": "./dist/ai/index.d.ts"
+    },
+    "./ops": {
+      "import": "./dist/ops/index.js",
+      "require": "./dist/ops/index.js",
+      "types": "./dist/ops/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
     }
   },
   "files": [
@@ -139,17 +158,23 @@
     "type-check": "tsc --noEmit",
     "dev": "tsc --watch",
     "clean": "rm -rf dist node_modules",
-    "test": "node --test dist/**/*.test.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
+    "prepare": "husky install || true",
     "prepublishOnly": "npm run build && npm run lint && npm run type-check",
     "publish:set-token": "node bin/set-npm-token.js",
     "publish:setup": "node bin/set-npm-token.js",
     "publish:check": "npm whoami --registry https://registry.npmjs.org || (echo 'Error: Not logged in to npm. Set NPM_TOKEN or run: npm login' && exit 1)",
     "publish:package": "pnpm run publish:check && pnpm publish --access public --no-git-checks --registry https://registry.npmjs.org",
     "publish:dry-run": "pnpm run publish:check && pnpm publish --access public --no-git-checks --dry-run --registry https://registry.npmjs.org",
+    "release:tag": "echo 'Use GitHub Actions workflow: Tag @kitiumai/scripts Release'",
+    "release:manual": "echo '⚠️  Manual release - ensure you have run: git tag @kitiumai/scripts@<version> && git push origin @kitiumai/scripts@<version>' && pnpm run publish:package",
     "changeset": "node bin/ensure-changeset.js && changeset",
     "changeset:init": "node bin/ensure-changeset.js"
   },
@@ -164,9 +189,12 @@
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.16.0",
     "@typescript-eslint/parser": "^8.16.0",
+    "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.15.0",
     "globals": "^16.5.0",
+    "husky": "^9.0.11",
     "prettier": "^3.6.2",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.8"
   }
 }

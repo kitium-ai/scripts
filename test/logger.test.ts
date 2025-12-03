@@ -1,13 +1,14 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { logger } from '../src/utils/logger';
 import chalk from 'chalk';
 
 // Mock console methods
-const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 describe('Logger', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should log info messages', () => {
