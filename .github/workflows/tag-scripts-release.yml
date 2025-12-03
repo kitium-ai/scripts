@@ -1,0 +1,117 @@
+name: Tag @kitiumai/scripts Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to tag (e.g., 1.0.0, 1.1.0, 2.0.0)'
+        required: true
+        type: string
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  tag-release:
+    name: "Create Release Tag"
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/ashishyd/kitiumai-dev:latest
+      options: --user node
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Version must be in format: x.y.z (e.g., 1.0.0, 2.1.3)"
+            exit 1
+          fi
+          echo "✅ Valid version format: $VERSION"
+
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          TAG="@kitiumai/scripts@${{ inputs.version }}"
+          if git tag -l | grep -q "^$TAG$"; then
+            echo "❌ Tag $TAG already exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ Tag $TAG is available"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: /home/node/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build and test package
+        run: |
+          echo "🔨 Building package..."
+          pnpm run build
+
+          echo "🧪 Running tests..."
+          pnpm run test
+
+          echo "🔍 Running linting..."
+          pnpm run lint
+
+          echo "📝 Type checking..."
+          pnpm run type-check
+
+      - name: Update package.json version
+        run: |
+          echo "📦 Updating package.json version to ${{ inputs.version }}"
+          npm version "${{ inputs.version }}" --no-git-tag-version
+
+      - name: Commit version bump
+        run: |
+          git add package.json
+          git commit -m "chore: bump @kitiumai/scripts to v${{ inputs.version }}"
+
+      - name: Push version bump
+        run: |
+          git push origin main
+
+      - name: Create and push tag
+        run: |
+          TAG="@kitiumai/scripts@${{ inputs.version }}"
+          echo "🏷️  Creating tag: $TAG"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Verify tag creation
+        run: |
+          TAG="@kitiumai/scripts@${{ inputs.version }}"
+          echo "✅ Tag created successfully: $TAG"
+          echo "🔗 Tag URL: https://github.com/kitiumai/scripts/releases/tag/$TAG"
+          echo ""
+          echo "The release workflow will now be triggered automatically."
+          echo "Monitor the 'Release @kitiumai/scripts' workflow for the publishing status."

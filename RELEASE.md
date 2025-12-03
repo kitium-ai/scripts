@@ -10,7 +10,7 @@ The package uses GitHub Actions workflows for automated releases:
 
 Use the **"Tag @kitiumai/scripts Release"** workflow to create a new release tag:
 
-1. Go to [GitHub Actions](https://github.com/kitiumai/monorepo/actions)
+1. Go to [GitHub Actions](https://github.com/kitiumai/scripts/actions) (this repository)
 2. Select "Tag @kitiumai/scripts Release" workflow
 3. Click "Run workflow"
 4. Enter the version number (e.g., `1.0.0`, `1.1.0`, `2.0.0`)

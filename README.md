@@ -100,7 +100,7 @@ This package uses automated GitHub Actions workflows for releases. New versions 
 
 ### Creating a Release
 
-1. **Automated Tagging**: Use the "Tag @kitiumai/scripts Release" workflow in GitHub Actions
+1. **Automated Tagging**: Use the "Tag @kitiumai/scripts Release" workflow in this repository's Actions
 2. **Version Format**: Tags follow `@kitiumai/scripts@<version>` format (e.g., `@kitiumai/scripts@1.0.0`)
 3. **Automatic Publishing**: Pushing a tag triggers the release workflow that builds, tests, and publishes to NPM
 
@@ -108,6 +108,8 @@ This package uses automated GitHub Actions workflows for releases. New versions 
 
 - **Tag Creation**: `Tag @kitiumai/scripts Release` - Creates version tags
 - **Publishing**: `Release @kitiumai/scripts` - Publishes to NPM on tag push
+
+**Note**: These workflows are located in `.github/workflows/` within this package directory.
 
 📖 **[Release Documentation](RELEASE.md)** - Complete release process guide
 

@@ -98,7 +98,7 @@ function isValidRefName(ref: string): boolean {
     typeof ref === 'string' &&
     ref.length > 0 &&
     !ref.startsWith('-') &&
-    /^[A-Za-z0-9._\/-]+$/.test(ref) &&
+    /^[A-Za-z0-9._/-]+$/.test(ref) &&
     // No double dots, no '@{' sequence, does not end with dot, slash, or .lock
     !ref.includes('..') &&
     !ref.includes('@{') &&
@@ -124,14 +124,14 @@ export async function push(branch?: string, remote = 'origin'): Promise<void> {
  * @param branch Branch name
  * @param remote Remote name (default: origin)
  */
+export async function pull(branch?: string, remote = 'origin'): Promise<void> {
+  const branchName = branch || (await getCurrentBranch());
   if (!isValidRefName(branchName)) {
     throw new Error(`Invalid branch name: ${branchName}`);
   }
   if (!isValidRefName(remote)) {
     throw new Error(`Invalid remote name: ${remote}`);
   }
-export async function pull(branch?: string, remote = 'origin'): Promise<void> {
-  const branchName = branch || (await getCurrentBranch());
   await exec('git', ['pull', remote, branchName]);
   log('success', `Pulled from ${remote}/${branchName}`);
 }

@@ -1,0 +1,176 @@
+name: Release @kitiumai/scripts
+
+on:
+  push:
+    tags:
+      - '@kitiumai/scripts@*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., @kitiumai/scripts@1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release-scripts:
+    name: "Release @kitiumai/scripts"
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/ashishyd/kitiumai-dev:latest
+      options: --user node
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Get tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            TAG_NAME="${{ inputs.tag }}"
+          fi
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Processing tag: $TAG_NAME"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # Extract version from tag like @kitiumai/scripts@1.2.3
+          VERSION=$(echo "${{ steps.tag.outputs.tag }}" | sed 's/@kitiumai\/scripts@//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: /home/node/.local/share/pnpm/store
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build package
+        run: pnpm run build
+
+      - name: Run tests
+        run: pnpm run test
+
+      - name: Run linting
+        run: pnpm run lint
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Security checks
+        run: |
+          # Run security scans
+          node --input-type=module -e "
+            import { scanSecrets } from './dist/security/index.js';
+            const result = await scanSecrets({ failOnFinding: true });
+            if (result.findings?.length) {
+              console.error('Security issues found:', result.findings);
+              process.exit(1);
+            }
+            console.log('✅ No security issues found');
+          "
+
+      - name: Update package version
+        run: |
+          # Update version in package.json to match tag
+          npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+
+      - name: Setup NPM authentication
+        run: |
+          # Use the publish:set-token script to configure npm
+          npm config set //registry.npmjs.org/:_authToken "${{ secrets.NPM_TOKEN }}"
+          npm whoami --registry https://registry.npmjs.org/
+
+      - name: Publish to NPM
+        run: |
+          # Publish with public access
+          npm publish --access public --registry https://registry.npmjs.org/
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Generate SBOM
+        run: |
+          # Generate Software Bill of Materials
+          node --input-type=module -e "
+            import { generateSBOM } from './dist/release/index.js';
+            await generateSBOM({ format: 'cyclonedx-json', output: 'sbom.json' });
+          "
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          release_name: "@kitiumai/scripts ${{ steps.version.outputs.version }}"
+          body: |
+            ## 🚀 Release @kitiumai/scripts@${{ steps.version.outputs.version }}
+
+            ### What's New
+            - Comprehensive collection of reusable scripts and utilities
+            - Enhanced security scanning and compliance tools
+            - Improved AI provider token management
+            - Better dependency management and deprecation handling
+            - Extended Git operations and automation capabilities
+
+            ### Installation
+            ```bash
+            npm install @kitiumai/scripts@${{ steps.version.outputs.version }}
+            # or
+            pnpm add @kitiumai/scripts@${{ steps.version.outputs.version }}
+            ```
+
+            ### Documentation
+            📖 [API Reference](https://github.com/kitiumai/scripts/blob/main/API_REFERENCES.md)
+            🏠 [Package README](https://github.com/kitiumai/scripts/blob/main/README.md)
+
+            ### Security
+            🔒 [SBOM](https://github.com/kitiumai/scripts/releases/download/${{ steps.tag.outputs.tag }}/sbom.json)
+          draft: false
+          prerelease: false
+
+      - name: Upload SBOM to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: sbom.json
+          asset_name: sbom.json
+          asset_content_type: application/json
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Successfully released @kitiumai/scripts@${{ steps.version.outputs.version }}"
+          echo "📦 Published to NPM: https://www.npmjs.com/package/@kitiumai/scripts/v/${{ steps.version.outputs.version }}"
+          echo "🏷️  GitHub Release: https://github.com/kitiumai/scripts/releases/tag/${{ steps.tag.outputs.tag }}"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Failed to release @kitiumai/scripts@${{ steps.version.outputs.version }}"
+          echo "Please check the workflow logs for details"
