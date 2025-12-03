@@ -18,6 +18,8 @@ jobs:
   release-scripts:
     name: "Release @kitiumai/scripts"
     runs-on: ubuntu-latest
+    container:
+      image: docker.io/ashishyd/kitiumai-dev:latest
 
     steps:
       - name: Checkout
@@ -32,17 +34,22 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+      - name: Environment health check
+        run: |
+          echo "📋 Environment diagnostics:"
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
+          echo "Git: $(git --version)"
+          echo "Working directory: $(pwd)"
+          echo "User: $(whoami)"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
+      - name: Ensure pnpm available (corepack fallback)
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            echo "ℹ️ pnpm not found, enabling via corepack"
+            corepack enable
+            corepack prepare pnpm@8 -o /usr/local/bin/pnpm
+          fi
 
       - name: Get tag name
         id: tag
@@ -64,21 +71,26 @@ jobs:
           echo "Extracted version: $VERSION"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build package
+        working-directory: tooling/scripts
         run: pnpm run build
 
       - name: Run tests
+        working-directory: tooling/scripts
         run: pnpm run test
 
       - name: Run linting
+        working-directory: tooling/scripts
         run: pnpm run lint
 
       - name: Type check
+        working-directory: tooling/scripts
         run: pnpm run type-check
 
       - name: Security checks
+        working-directory: tooling/scripts
         run: |
           # Run security scans if the module exists; otherwise skip (non-blocking)
           if [ -f "dist/security/index.js" ]; then
@@ -96,17 +108,20 @@ jobs:
           fi
 
       - name: Update package version
+        working-directory: tooling/scripts
         run: |
           # Update version in package.json to match tag
           npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
 
       - name: Setup NPM authentication
+        working-directory: tooling/scripts
         run: |
           # Use the publish:set-token script to configure npm
           npm config set //registry.npmjs.org/:_authToken "${{ secrets.NPM_TOKEN }}"
           npm whoami --registry https://registry.npmjs.org/
 
       - name: Publish to NPM
+        working-directory: tooling/scripts
         run: |
           # Publish with public access
           npm publish --access public --registry https://registry.npmjs.org/
@@ -114,6 +129,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Generate SBOM
+        working-directory: tooling/scripts
         run: |
           # Generate Software Bill of Materials if available, else create minimal placeholder
           if [ -f "dist/release/index.js" ]; then
@@ -166,7 +182,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: sbom.json
+          asset_path: tooling/scripts/sbom.json
           asset_name: sbom.json
           asset_content_type: application/json
 

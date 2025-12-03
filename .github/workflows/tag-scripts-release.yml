@@ -24,6 +24,8 @@ jobs:
   tag-release:
     name: "Create Release Tag"
     runs-on: ubuntu-latest
+    container:
+      image: docker.io/ashishyd/kitiumai-dev:latest
 
     steps:
       - name: Checkout
@@ -38,17 +40,22 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+      - name: Environment health check
+        run: |
+          echo "📋 Environment diagnostics:"
+          echo "Node: $(node --version)"
+          echo "NPM: $(npm --version)"
+          echo "Git: $(git --version)"
+          echo "Working directory: $(pwd)"
+          echo "User: $(whoami)"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
+      - name: Ensure pnpm available (corepack fallback)
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            echo "ℹ️ pnpm not found, enabling via corepack"
+            corepack enable
+            corepack prepare pnpm@8 -o /usr/local/bin/pnpm
+          fi
 
       - name: Validate version format
         run: |
@@ -74,9 +81,10 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build and test package
+        working-directory: tooling/scripts
         run: |
           echo "🔨 Building package..."
           pnpm run build
@@ -91,13 +99,14 @@ jobs:
           pnpm run type-check
 
       - name: Update package.json version
+        working-directory: tooling/scripts
         run: |
           echo "📦 Updating package.json version to ${{ inputs.version }}"
           npm version "${{ inputs.version }}" --no-git-tag-version
 
       - name: Commit version bump
         run: |
-          git add package.json
+          git add tooling/scripts/package.json
           git commit -m "chore: bump @kitiumai/scripts to v${{ inputs.version }}"
 
       - name: Push version bump
