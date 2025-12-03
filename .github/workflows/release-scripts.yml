@@ -74,24 +74,33 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build package
-        working-directory: tooling/scripts
-        run: pnpm run build
+        run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; else echo "ℹ️ tooling/scripts not found; using repo root"; fi
+          pnpm run build
 
       - name: Run tests
-        working-directory: tooling/scripts
-        run: pnpm run test
+        run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
+          pnpm run test
 
       - name: Run linting
-        working-directory: tooling/scripts
-        run: pnpm run lint
+        run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
+          pnpm run lint
 
       - name: Type check
-        working-directory: tooling/scripts
-        run: pnpm run type-check
+        run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
+          pnpm run type-check
 
       - name: Security checks
-        working-directory: tooling/scripts
         run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Run security scans if the module exists; otherwise skip (non-blocking)
           if [ -f "dist/security/index.js" ]; then
             node --input-type=module -e "
@@ -108,29 +117,33 @@ jobs:
           fi
 
       - name: Update package version
-        working-directory: tooling/scripts
         run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Update version in package.json to match tag
           npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
 
       - name: Setup NPM authentication
-        working-directory: tooling/scripts
         run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Use the publish:set-token script to configure npm
           npm config set //registry.npmjs.org/:_authToken "${{ secrets.NPM_TOKEN }}"
           npm whoami --registry https://registry.npmjs.org/
 
       - name: Publish to NPM
-        working-directory: tooling/scripts
         run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Publish with public access
           npm publish --access public --registry https://registry.npmjs.org/
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Generate SBOM
-        working-directory: tooling/scripts
         run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Generate Software Bill of Materials if available, else create minimal placeholder
           if [ -f "dist/release/index.js" ]; then
             node --input-type=module -e "
@@ -182,7 +195,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: tooling/scripts/sbom.json
+          asset_path: ${{ github.workspace }}/tooling/scripts/sbom.json
           asset_name: sbom.json
           asset_content_type: application/json
 

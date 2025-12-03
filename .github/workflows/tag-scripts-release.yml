@@ -84,8 +84,16 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build and test package
-        working-directory: tooling/scripts
         run: |
+          # Prefer local package dir if running inside monorepo
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then
+            echo "ℹ️ Using working dir: $WORKDIR"
+            cd "$WORKDIR"
+          else
+            echo "ℹ️ tooling/scripts not found; using repo root"
+          fi
+
           echo "🔨 Building package..."
           pnpm run build
 
@@ -99,8 +107,9 @@ jobs:
           pnpm run type-check
 
       - name: Update package.json version
-        working-directory: tooling/scripts
         run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           echo "📦 Updating package.json version to ${{ inputs.version }}"
           npm version "${{ inputs.version }}" --no-git-tag-version
 
