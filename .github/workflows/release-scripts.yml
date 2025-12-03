@@ -120,8 +120,16 @@ jobs:
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          # Update version in package.json to match tag
-          npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+          
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TARGET_VERSION="${{ steps.version.outputs.version }}"
+          
+          if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
+            echo "ℹ️ Version already set to $TARGET_VERSION, skipping npm version"
+          else
+            echo "📦 Updating package.json version from $CURRENT_VERSION to $TARGET_VERSION"
+            npm version "$TARGET_VERSION" --no-git-tag-version
+          fi
 
       - name: Setup NPM authentication
         run: |
