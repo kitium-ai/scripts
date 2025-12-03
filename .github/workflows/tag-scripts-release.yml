@@ -70,7 +70,7 @@ jobs:
       - name: Check if tag already exists
         id: check_tag
         run: |
-          TAG="@kitiumai/scripts@${{ inputs.version }}"
+          TAG="v${{ inputs.version }}"
           if git tag -l | grep -q "^$TAG$"; then
             echo "❌ Tag $TAG already exists"
             echo "exists=true" >> $GITHUB_OUTPUT
@@ -140,14 +140,14 @@ jobs:
 
       - name: Create and push tag
         run: |
-          TAG="@kitiumai/scripts@${{ inputs.version }}"
+          TAG="v${{ inputs.version }}"
           echo "🏷️  Creating tag: $TAG"
           git tag "$TAG"
           git push origin "$TAG"
 
       - name: Verify tag creation
         run: |
-          TAG="@kitiumai/scripts@${{ inputs.version }}"
+          TAG="v${{ inputs.version }}"
           echo "✅ Tag created successfully: $TAG"
           echo "🔗 Tag URL: https://github.com/kitiumai/scripts/releases/tag/$TAG"
           echo ""

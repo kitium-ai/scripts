@@ -3,11 +3,11 @@ name: Release @kitiumai/scripts
 on:
   push:
     tags:
-      - '@kitiumai/scripts@*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g., @kitiumai/scripts@1.0.0)'
+        description: 'Tag to release (e.g., v1.0.0)'
         required: true
         type: string
 
@@ -65,8 +65,8 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          # Extract version from tag like @kitiumai/scripts@1.2.3
-          VERSION=$(echo "${{ steps.tag.outputs.tag }}" | sed 's/@kitiumai\/scripts@//')
+          # Extract version from tag like v1.2.3
+          VERSION=$(echo "${{ steps.tag.outputs.tag }}" | sed 's/^v//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
 
