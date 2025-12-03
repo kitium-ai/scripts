@@ -110,17 +110,26 @@ jobs:
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          echo "📦 Updating package.json version to ${{ inputs.version }}"
-          npm version "${{ inputs.version }}" --no-git-tag-version
+          
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          TARGET_VERSION="${{ inputs.version }}"
+          
+          if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
+            echo "ℹ️ Version already set to $TARGET_VERSION, skipping npm version"
+          else
+            echo "📦 Updating package.json version from $CURRENT_VERSION to $TARGET_VERSION"
+            npm version "$TARGET_VERSION" --no-git-tag-version
+          fi
 
       - name: Commit version bump
         run: |
-          git add tooling/scripts/package.json
-          git commit -m "chore: bump @kitiumai/scripts to v${{ inputs.version }}"
-
-      - name: Push version bump
-        run: |
-          git push origin main
+          if git diff --quiet tooling/scripts/package.json; then
+            echo "ℹ️ No changes to commit"
+          else
+            git add tooling/scripts/package.json
+            git commit -m "chore: bump @kitiumai/scripts to v${{ inputs.version }}"
+            git push origin main
+          fi
 
       - name: Create and push tag
         run: |
