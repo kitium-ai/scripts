@@ -132,12 +132,43 @@ jobs:
           fi
 
       - name: Setup NPM authentication
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          # Use the publish:set-token script to configure npm
-          npm config set //registry.npmjs.org/:_authToken "${{ secrets.NPM_TOKEN }}"
-          npm whoami --registry https://registry.npmjs.org/
+
+          # Fail early if secret is missing
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "❌ NPM_TOKEN is not available to this workflow context"
+            echo "Ensure the token is defined in repository or org secrets and that this repo has access."
+            exit 1
+          fi
+
+          # Write ~/.npmrc for auth (preferred for npm CLI)
+          mkdir -p "$HOME"
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > "$HOME/.npmrc"
+          echo "always-auth=true" >> "$HOME/.npmrc"
+          npm config set registry https://registry.npmjs.org/
+
+          # Also add project-level .npmrc as fallback
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+          echo "always-auth=true" >> .npmrc
+
+          # Verify auth; if whoami fails, print helpful guidance
+          if ! npm whoami --registry https://registry.npmjs.org/ >/dev/null 2>&1; then
+            echo "⚠️ npm whoami failed (401). Common causes:"
+            echo "  - NPM token lacks 'publish' scope or is expired"
+            echo "  - Token is a 'Granular Access Token' missing packages:publish scope"
+            echo "  - Token is scoped to a different org/user"
+            echo "  - The secret isn't exposed to this repository"
+            echo "Retrying with explicit config..."
+            npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+            npm whoami --registry https://registry.npmjs.org/ || {
+              echo "❌ Authentication still failing. Please regenerate an npm 'Access Token' with 'Publish' (automation) scope and update NPM_TOKEN."
+              exit 1
+            }
+          fi
 
       - name: Publish to NPM
         run: |
