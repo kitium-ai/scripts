@@ -121,10 +121,10 @@ jobs:
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          
+
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           TARGET_VERSION="${{ steps.version.outputs.version }}"
-          
+
           if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
             echo "ℹ️ Version already set to $TARGET_VERSION, skipping npm version"
           else
@@ -132,7 +132,25 @@ jobs:
             npm version "$TARGET_VERSION" --no-git-tag-version
           fi
 
+      - name: Configure npm for trusted publishing
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          WORKDIR="tooling/scripts"
+          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
+
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "❌ NPM_TOKEN is required for publishing"
+            exit 1
+          fi
+
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+          npm config set provenance true
+          echo "✅ npm configured for trusted publishing"
+
       - name: Publish to NPM
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           WORKDIR="tooling/scripts"
           if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
