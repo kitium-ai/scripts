@@ -251,12 +251,13 @@ jobs:
           prerelease: false
 
       - name: Upload SBOM to release
+        continue-on-error: true
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/tooling/scripts/sbom.json
+          asset_path: sbom.json
           asset_name: sbom.json
           asset_content_type: application/json
 
