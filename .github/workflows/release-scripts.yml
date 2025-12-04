@@ -75,33 +75,19 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build package
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; else echo "ℹ️ tooling/scripts not found; using repo root"; fi
-          pnpm run build
+        run: pnpm run build
 
       - name: Run tests
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          pnpm run test
+        run: pnpm run test
 
       - name: Run linting
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          pnpm run lint
+        run: pnpm run lint
 
       - name: Type check
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          pnpm run type-check
+        run: pnpm run type-check
 
       - name: Security checks
         run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Run security scans if the module exists; otherwise skip (non-blocking)
           if [ -f "dist/security/index.js" ]; then
             node --input-type=module -e "
@@ -119,12 +105,9 @@ jobs:
 
       - name: Update package version
         run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           TARGET_VERSION="${{ steps.version.outputs.version }}"
-          
+
           if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
             echo "ℹ️ Version already set to $TARGET_VERSION, skipping npm version"
           else
@@ -132,17 +115,29 @@ jobs:
             npm version "$TARGET_VERSION" --no-git-tag-version
           fi
 
-      - name: Publish to NPM
+      - name: Configure npm for trusted publishing
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
         run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          # Trusted Publishing via GitHub OIDC (no tokens/2FA required)
-          npm publish --access public --provenance
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "❌ NODE_AUTH_TOKEN is required for publishing"
+            exit 1
+          fi
+
+          npm config set //registry.npmjs.org/:_authToken="${NODE_AUTH_TOKEN}"
+          echo "✅ npm configured for trusted publishing"
+
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+        run: |
+          # Trusted Publishing via GitHub OIDC (no OTP required)
+          npm publish --access public
 
       - name: Generate SBOM
         run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
           # Generate Software Bill of Materials if available, else create minimal placeholder
           if [ -f "dist/release/index.js" ]; then
             node --input-type=module -e "
@@ -194,7 +189,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ github.workspace }}/tooling/scripts/sbom.json
+          asset_path: ${{ github.workspace }}/sbom.json
           asset_name: sbom.json
           asset_content_type: application/json
 
