@@ -8,11 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kitiumai/scripts.git"
+    "url": "https://github.com/kitium-ai/scripts.git"
   },
-  "homepage": "https://github.com/kitiumai/scripts#readme",
+  "homepage": "https://github.com/kitium-ai/scripts#readme",
   "bugs": {
-    "url": "https://github.com/kitiumai/scripts/issues"
+    "url": "https://github.com/kitium-ai/scripts/issues"
   },
   "author": "Kitium AI",
   "keywords": [
