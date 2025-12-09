@@ -1,0 +1,16 @@
+# CodeQL Configuration
+disable-default-queries: false
+
+queries:
+  - uses: security-and-quality
+  - uses: security-experimental
+
+paths-ignore:
+  - node_modules
+  - .pnpm-store
+  - dist
+  - build
+  - coverage
+  - .next
+  - .turbo
+  - .changeset

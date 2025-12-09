@@ -1,0 +1,62 @@
+---
+name: Security Vulnerability
+about: Report a security vulnerability
+title: "[SECURITY] "
+labels: ["security", "urgent"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **IMPORTANT:** Please do not report security vulnerabilities through public GitHub issues.
+
+        Instead, please report security vulnerabilities by emailing security@kitiumai.com
+
+        We will investigate all legitimate reports and do our best to quickly fix the problem.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Vulnerability Description
+      description: Please provide a detailed description of the vulnerability.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this vulnerability?
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Potential Impact
+      description: What could an attacker achieve by exploiting this vulnerability?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: How can this vulnerability be reproduced?
+    validations:
+      required: true
+
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Information
+      description: How can we reach you for follow-up questions?
+      placeholder: "email@example.com or GitHub username"
+    validations:
+      required: true

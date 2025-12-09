@@ -1,0 +1,39 @@
+# PR Labeler Configuration
+version: 2
+
+labels:
+  - label: 'enhancement'
+    sync: true
+    matcher:
+      files: ['packages/**', 'apps/**', 'services/**']
+      title: '/^(feat|feature)/i'
+
+  - label: 'bug'
+    sync: true
+    matcher:
+      title: '/^(fix|bug)/i'
+
+  - label: 'documentation'
+    sync: true
+    matcher:
+      files: ['*.md', 'docs/**', 'README*']
+
+  - label: 'ci'
+    sync: true
+    matcher:
+      files: ['.github/**', 'scripts/**']
+
+  - label: 'security'
+    sync: true
+    matcher:
+      files: ['packages/core/@kitiumai/security/**', 'SECURITY.md']
+
+  - label: 'dependencies'
+    sync: true
+    matcher:
+      files: ['package.json', 'pnpm-lock.yaml']
+
+  - label: 'breaking-change'
+    sync: true
+    matcher:
+      title: '/breaking|major/i'

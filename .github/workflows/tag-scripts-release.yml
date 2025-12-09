@@ -49,14 +49,6 @@ jobs:
           echo "Working directory: $(pwd)"
           echo "User: $(whoami)"
 
-      - name: Ensure pnpm available (corepack fallback)
-        run: |
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "ℹ️ pnpm not found, enabling via corepack"
-            corepack enable
-            corepack prepare pnpm@8 -o /usr/local/bin/pnpm
-          fi
-
       - name: Validate version format
         run: |
           VERSION="${{ inputs.version }}"
@@ -80,31 +72,13 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
-
-      - name: Build and test package
-        run: |
-          # Prefer local package dir if running inside monorepo
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then
-            echo "ℹ️ Using working dir: $WORKDIR"
-            cd "$WORKDIR"
-          else
-            echo "ℹ️ tooling/scripts not found; using repo root"
-          fi
-
-          echo "🔨 Building package..."
-          pnpm run build
-
-          echo "🧪 Running tests..."
-          pnpm run test
-
-          echo "🔍 Running linting..."
-          pnpm run lint
-
-          echo "📝 Type checking..."
-          pnpm run type-check
+      - name: Shared setup (build, lint, test, typecheck)
+        uses: ./.github/actions/scripts-shared-setup
+        with:
+          run-build: "true"
+          run-tests: "true"
+          run-lint: "true"
+          run-typecheck: "true"
 
       - name: Update package.json version
         run: |

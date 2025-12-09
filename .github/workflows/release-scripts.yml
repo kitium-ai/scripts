@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+  create:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
@@ -44,21 +47,13 @@ jobs:
           echo "Working directory: $(pwd)"
           echo "User: $(whoami)"
 
-      - name: Ensure pnpm available (corepack fallback)
-        run: |
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "ℹ️ pnpm not found, enabling via corepack"
-            corepack enable
-            corepack prepare pnpm@8 -o /usr/local/bin/pnpm
-          fi
-
       - name: Get tag name
         id: tag
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-          else
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG_NAME="${{ inputs.tag }}"
+          else
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
           fi
           echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
           echo "Processing tag: $TAG_NAME"
@@ -71,32 +66,13 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Extracted version: $VERSION"
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
-
-      - name: Build package
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; else echo "ℹ️ tooling/scripts not found; using repo root"; fi
-          pnpm run build
-
-      - name: Run tests
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          pnpm run test
-
-      - name: Run linting
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          pnpm run lint
-
-      - name: Type check
-        run: |
-          WORKDIR="tooling/scripts"
-          if [ -d "$WORKDIR" ]; then cd "$WORKDIR"; fi
-          pnpm run type-check
+      - name: Shared setup (install + verify)
+        uses: ./.github/actions/scripts-shared-setup
+        with:
+          run-build: "true"
+          run-tests: "true"
+          run-lint: "true"
+          run-typecheck: "true"
 
       - name: Security checks
         run: |

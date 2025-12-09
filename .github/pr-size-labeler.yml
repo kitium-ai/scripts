@@ -1,0 +1,23 @@
+ci:
+  - .github/**
+  - scripts/**
+
+size/xs:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*.{md,txt}', 'docs/**']
+
+size/s:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*.{js,ts,tsx,jsx,json,yml,yaml}']
+
+size/m:
+  - changed-files:
+      - any-glob-to-any-file: ['packages/**', 'apps/**']
+
+size/l:
+  - changed-files:
+      - any-glob-to-any-file: ['services/**', 'products/**']
+
+size/xl:
+  - changed-files:
+      - any-glob-to-any-file: ['**/*']

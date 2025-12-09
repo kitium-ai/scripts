@@ -1,0 +1,98 @@
+name: Kitium Scripts Shared Setup
+description: Install dependencies and run shared steps for @kitiumai/scripts
+inputs:
+  working-directory:
+    description: Relative path to the package root
+    required: false
+    default: tooling/scripts
+  run-build:
+    description: Run build command
+    required: false
+    default: "false"
+  build-command:
+    description: Command to run for building
+    required: false
+    default: pnpm run build
+  run-lint:
+    description: Run lint command
+    required: false
+    default: "false"
+  lint-command:
+    description: Command to run for linting
+    required: false
+    default: pnpm run lint
+  run-tests:
+    description: Run test command
+    required: false
+    default: "false"
+  test-command:
+    description: Command to run for tests
+    required: false
+    default: pnpm run test
+  run-typecheck:
+    description: Run type-check command
+    required: false
+    default: "false"
+  typecheck-command:
+    description: Command to run for type-checking
+    required: false
+    default: pnpm run type-check
+  run-security-audit:
+    description: Run pnpm audit
+    required: false
+    default: "false"
+  audit-allow-failure:
+    description: Allow pnpm audit failures without failing workflow
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts
+      shell: bash
+
+    - name: Build
+      if: ${{ inputs.run-build == 'true' }}
+      run: |
+        WORKDIR="${{ inputs.working-directory }}"
+        cd "$WORKDIR"
+        ${{ inputs.build-command }}
+      shell: bash
+
+    - name: Lint
+      if: ${{ inputs.run-lint == 'true' }}
+      run: |
+        WORKDIR="${{ inputs.working-directory }}"
+        cd "$WORKDIR"
+        ${{ inputs.lint-command }}
+      shell: bash
+
+    - name: Tests
+      if: ${{ inputs.run-tests == 'true' }}
+      run: |
+        WORKDIR="${{ inputs.working-directory }}"
+        cd "$WORKDIR"
+        ${{ inputs.test-command }}
+      shell: bash
+
+    - name: Type check
+      if: ${{ inputs.run-typecheck == 'true' }}
+      run: |
+        WORKDIR="${{ inputs.working-directory }}"
+        cd "$WORKDIR"
+        ${{ inputs.typecheck-command }}
+      shell: bash
+
+    - name: pnpm audit
+      if: ${{ inputs.run-security-audit == 'true' }}
+      run: |
+        if pnpm audit --audit-level moderate; then
+          exit 0
+        elif [ "${{ inputs.audit-allow-failure }}" = "true" ]; then
+          echo "pnpm audit detected issues but continuing as requested"
+          exit 0
+        else
+          exit 1
+        fi
+      shell: bash
