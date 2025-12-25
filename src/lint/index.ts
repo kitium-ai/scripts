@@ -24,12 +24,12 @@ export async function runEslint(options: LintOptions = {}): Promise<void> {
   const {
     paths = ['.'],
     fix = false,
-    ext = ['.ts', '.tsx'],
+    ext: extension = ['.ts', '.tsx'],
     verbose = false,
     flags = [],
   } = options;
 
-  const args = ['eslint', ...paths, '--ext', ext.join(',')];
+  const args = ['eslint', ...paths, '--ext', extension.join(',')];
 
   if (fix) {
     args.push('--fix');

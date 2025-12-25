@@ -1,6 +1,6 @@
 {
   "name": "@kitiumai/scripts",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A comprehensive collection of reusable scripts and utilities for the Kitium AI organization",
   "license": "MIT",
   "publishConfig": {
@@ -61,7 +61,8 @@
     "kitium-security-check": "./bin/security-check.js",
     "kitium-license-check": "./bin/license-compliance.js",
     "sign-artifact": "./bin/sign-artifact.js",
-    "license-check": "./bin/license-check.js"
+    "license-check": "./bin/license-check.js",
+    "validate-configs": "./dist/validate-configs.js"
   },
   "exports": {
     ".": {
@@ -179,19 +180,24 @@
     "changeset:init": "node bin/ensure-changeset.js"
   },
   "dependencies": {
+    "@kitiumai/utils-ts": "file:../../packages/utils/@kitiumai/utils-ts",
     "chalk": "^5.3.0",
     "commander": "^14.0.2",
-    "execa": "^8.0.1",
     "fs-extra": "^11.3.2"
   },
+  "peerDependencies": {
+    "@kitiumai/logger": "*"
+  },
+  "peerDependenciesMeta": {
+    "@kitiumai/logger": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
+    "@kitiumai/lint": "file:../../packages/dev-tools/@kitiumai/lint",
     "@types/node": "^24.10.1",
-    "@typescript-eslint/eslint-plugin": "^8.16.0",
-    "@typescript-eslint/parser": "^8.16.0",
     "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9.15.0",
-    "globals": "^16.5.0",
     "husky": "^9.0.11",
     "prettier": "^3.6.2",
     "typescript": "^5.6.0",

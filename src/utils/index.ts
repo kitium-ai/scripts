@@ -1,6 +1,14 @@
-import { spawn, SpawnOptions } from 'child_process';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { spawn, SpawnOptions } from 'node:child_process';
+
+// Import file system utilities from @kitiumai/utils-ts
+export {
+  findFiles,
+  getProjectRoot,
+  getRelativePath,
+  pathExists,
+  readJson,
+  writeJson,
+} from '@kitiumai/utils-ts/runtime/node';
 
 /**
  * Options for executing a command
@@ -71,94 +79,6 @@ export async function exec(
       reject(error);
     });
   });
-}
-
-/**
- * Check if a file or directory exists
- * @param filePath Path to check
- * @returns True if path exists
- */
-export async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Read a JSON file
- * @param filePath Path to JSON file
- * @returns Parsed JSON object
- */
-export async function readJson<T = unknown>(filePath: string): Promise<T> {
-  const content = await fs.readFile(filePath, 'utf-8');
-  return JSON.parse(content) as T;
-}
-
-/**
- * Write a JSON file
- * @param filePath Path to write to
- * @param data Object to serialize
- * @param pretty Whether to pretty-print JSON
- */
-export async function writeJson(
-  filePath: string,
-  data: unknown,
-  pretty = true
-): Promise<void> {
-  const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
-  await fs.writeFile(filePath, content, 'utf-8');
-}
-
-/**
- * Find files matching a pattern
- * @param dir Directory to search
- * @param pattern File pattern to match
- * @returns Array of matching file paths
- */
-export async function findFiles(dir: string, pattern: RegExp): Promise<string[]> {
-  const files: string[] = [];
-
-  async function walk(currentDir: string): Promise<void> {
-    const entries = await fs.readdir(currentDir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      // Skip common non-source directories
-      if (['node_modules', '.git', 'dist', 'build', '.next'].includes(entry.name)) {
-        continue;
-      }
-
-      const fullPath = path.join(currentDir, entry.name);
-
-      if (entry.isDirectory()) {
-        await walk(fullPath);
-      } else if (pattern.test(entry.name)) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  await walk(dir);
-  return files;
-}
-
-/**
- * Get the root directory of the current project
- * @returns Root directory path
- */
-export function getProjectRoot(): string {
-  return process.cwd();
-}
-
-/**
- * Get a relative path from project root
- * @param filePath Absolute path
- * @returns Relative path from project root
- */
-export function getRelativePath(filePath: string): string {
-  return path.relative(getProjectRoot(), filePath);
 }
 
 /**

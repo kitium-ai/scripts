@@ -1,5 +1,6 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { findFiles, getRelativePath, log } from '../utils/index.js';
 
 export type PiiSeverity = 'low' | 'medium' | 'high';
@@ -194,9 +195,9 @@ export async function scanPii(options: PiiScanOptions = {}): Promise<PiiScanResu
     log('success', `PII scan completed. No issues found across ${scannedFiles} files.`);
   } else {
     const summary = findings.reduce<Record<PiiSeverity, number>>(
-      (acc, finding) => {
-        acc[finding.severity] += 1;
-        return acc;
+      (accumulator, finding) => {
+        accumulator[finding.severity] += 1;
+        return accumulator;
       },
       { low: 0, medium: 0, high: 0 },
     );

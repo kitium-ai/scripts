@@ -1,6 +1,7 @@
-import { promises as fs } from 'fs';
-import os from 'os';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { exec, log } from '../utils/index.js';
 
 export type RotationProvider = 'aws' | 'gcp' | 'vault' | (string & { __brand?: 'rotation-provider' });
@@ -53,11 +54,11 @@ export async function rotateSecret(options: RotationOptions): Promise<RotationRe
   return result;
 }
 
-async function writeTempPayload(payload: unknown): Promise<string> {
-  const tempPath = path.join(os.tmpdir(), `kitium-rotation-${Date.now()}`);
+async function writeTemporaryPayload(payload: unknown): Promise<string> {
+  const temporaryPath = path.join(os.tmpdir(), `kitium-rotation-${Date.now()}`);
   const body = typeof payload === 'string' ? payload : JSON.stringify(payload ?? '');
-  await fs.writeFile(tempPath, body, 'utf-8');
-  return tempPath;
+  await fs.writeFile(temporaryPath, body, 'utf-8');
+  return temporaryPath;
 }
 
 export function createAwsSecretsManagerAdapter(region?: string): RotationAdapter {
@@ -95,12 +96,12 @@ export function createGcpSecretManagerAdapter(projectId?: string): RotationAdapt
       if (projectId) {
         args.push('--project', projectId);
       }
-      let tempPath: string | undefined;
+      let temporaryPath: string | undefined;
       try {
         if (metadata && 'payload' in metadata) {
-          tempPath = await writeTempPayload((metadata as { payload: unknown }).payload);
+          temporaryPath = await writeTemporaryPayload((metadata as { payload: unknown }).payload);
         }
-        args.push('--data-file', tempPath ?? '/dev/null');
+        args.push('--data-file', temporaryPath ?? '/dev/null');
         const result = await exec('gcloud', args, { throwOnError: false });
         return {
           provider: 'gcp',
@@ -110,8 +111,8 @@ export function createGcpSecretManagerAdapter(projectId?: string): RotationAdapt
           errorOutput: result.stderr,
         };
       } finally {
-        if (tempPath) {
-          await fs.rm(tempPath, { force: true });
+        if (temporaryPath) {
+          await fs.rm(temporaryPath, { force: true });
         }
       }
     },

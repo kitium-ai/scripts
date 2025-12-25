@@ -1,8 +1,10 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { exec, findFiles, log } from '../utils/index.js';
-export * from './flag-lint.js';
+
 export * from './canary-check.js';
+export * from './flag-lint.js';
 
 export interface ReleaseNotesOptions {
   changesetDir?: string;
@@ -23,7 +25,7 @@ export interface ReleaseNotes {
 
 function parseChangesetFile(content: string): ReleaseNoteEntry | null {
   const match = content.match(/^---\n([\s\S]+?)\n---\n([\s\S]*)$/);
-  if (!match) return null;
+  if (!match) {return null;}
 
   const frontMatter = match[1]
     .split('\n')
@@ -33,9 +35,9 @@ function parseChangesetFile(content: string): ReleaseNoteEntry | null {
   const packages: string[] = [];
   let type = 'patch';
   for (const line of frontMatter) {
-    const [pkg, bump] = line.replace(/"/g, '').split(':').map((part) => part.trim());
-    if (pkg && bump) {
-      packages.push(pkg);
+    const [package_, bump] = line.replace(/"/g, '').split(':').map((part) => part.trim());
+    if (package_ && bump) {
+      packages.push(package_);
       type = bump;
     }
   }
@@ -152,36 +154,35 @@ export async function syncVersionTags(
   options: VersionSyncOptions = {}
 ): Promise<VersionSyncResult> {
   const { packagePath = path.join(process.cwd(), 'package.json'), tagPrefix = '', registry } = options;
-  const pkg = JSON.parse(await fs.readFile(packagePath, 'utf-8')) as { name: string; version: string };
-  const tagName = `${tagPrefix}${pkg.version}`;
+  const package_ = JSON.parse(await fs.readFile(packagePath, 'utf-8')) as { name: string; version: string };
+  const tagName = `${tagPrefix}${package_.version}`;
   const gitResult = await exec('git', ['tag', '--list', tagName], { throwOnError: false });
   const gitTagExists = gitResult.stdout.includes(tagName);
 
   let npmVersion: string | undefined;
-  if (pkg.name) {
-    const npmArgs = ['view', pkg.name, 'version'];
+  if (package_.name) {
+    const npmArguments = ['view', package_.name, 'version'];
     if (registry) {
-      npmArgs.push('--registry', registry);
+      npmArguments.push('--registry', registry);
     }
-    const npmResult = await exec('npm', npmArgs, { throwOnError: false });
+    const npmResult = await exec('npm', npmArguments, { throwOnError: false });
     if (npmResult.code === 0) {
       npmVersion = npmResult.stdout.trim();
     }
   }
 
-  const inSync = gitTagExists && npmVersion === pkg.version;
+  const inSync = gitTagExists && npmVersion === package_.version;
 
   if (inSync) {
-    log('success', `${pkg.name} version ${pkg.version} is synced between git and npm.`);
+    log('success', `${package_.name} version ${package_.version} is synced between git and npm.`);
   } else {
     log(
       'warn',
       `Version sync mismatch: git tag (${gitTagExists ? 'present' : 'missing'}), npm version (${
         npmVersion ?? 'unknown'
-      }), package.json (${pkg.version}).`
+      }), package.json (${package_.version}).`
     );
   }
 
-  return { packageVersion: pkg.version, npmVersion, gitTagExists, inSync };
+  return { packageVersion: package_.version, npmVersion, gitTagExists, inSync };
 }
-

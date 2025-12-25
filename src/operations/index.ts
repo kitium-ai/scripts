@@ -1,5 +1,6 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { findFiles, log, readJson } from '../utils/index.js';
 
 export interface SmokeTarget {
@@ -136,7 +137,7 @@ export async function verifyLogSchemas(options: LogSchemaOptions = {}): Promise<
   if (issues.length === 0) {
     log('success', `Verified ${schemaFiles.length} log schema file(s).`);
   } else {
-    log('warn', `Log schema issues detected:\n- ${issues.map((i) => `${i.file}: ${i.message}`).join('\n- ')}`);
+    log('warn', `Log schema issues detected:\n- ${issues.map((index) => `${index.file}: ${index.message}`).join('\n- ')}`);
   }
 
   return { filesChecked: schemaFiles.length, issues };
@@ -153,4 +154,3 @@ async function exists(dir: string): Promise<boolean> {
 
 export * from '../ops/env-bootstrap.js';
 export * from '../ops/iac-validate.js';
-

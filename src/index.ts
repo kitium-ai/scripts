@@ -11,18 +11,18 @@
  */
 
 // Re-export everything from submodules
-export * from './utils/index.js';
-export * from './test/index.js';
-export * from './lint/index.js';
-export * from './git/index.js';
-export * from './deps/index.js';
-export * from './security/index.js';
-export * from './dx/index.js';
-export * from './release/index.js';
-export * from './operations/index.js';
-export * from './automation/index.js';
 export * from './ai/index.js';
-export * from './ops/index.js';
-export * from './types/index.js';
-export * from './observability/index.js';
+export * from './automation/index.js';
 export * from './data/index.js';
+export * from './deps/index.js';
+export * from './dx/index.js';
+export * from './git/index.js';
+export * from './lint/index.js';
+export * from './observability/index.js';
+export * from './operations/index.js';
+export * from './ops/index.js';
+export * from './release/index.js';
+export * from './security/index.js';
+export * from './test/index.js';
+export * from './types/index.js';
+export * from './utils/index.js';

@@ -1,5 +1,6 @@
-import { promises as fs, accessSync } from 'fs';
-import path from 'path';
+import { accessSync, promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { exec, findFiles, log, readJson } from '../utils/index.js';
 
 export interface CommitValidationOptions {
@@ -29,6 +30,33 @@ const DEFAULT_TYPES = [
   'style',
   'test',
 ];
+
+
+function validateCommit(
+  commit: { hash: string; message: string; parents: string },
+  allowMergeCommits: boolean,
+  conventionalRegex: RegExp
+): { hash: string; message: string; reason: string } | null {
+  const isMerge = commit.parents?.split(' ').length > 1;
+  if (isMerge && allowMergeCommits) {
+    return null;
+  }
+  if (isMerge && !allowMergeCommits) {
+    return {
+      hash: commit.hash,
+      message: commit.message,
+      reason: 'Merge commits are not allowed in the range.',
+    };
+  }
+  if (!conventionalRegex.test(commit.message)) {
+    return {
+      hash: commit.hash,
+      message: commit.message,
+      reason: 'Commit message does not follow Conventional Commits.',
+    };
+  }
+  return null;
+}
 
 export async function validateCommits(
   options: CommitValidationOptions = {}
@@ -66,24 +94,9 @@ export async function validateCommits(
   const conventionalRegex = new RegExp(`^${typePattern}${scopePattern}!:?\\s.+|^${typePattern}${scopePattern}:\\s.+`);
 
   for (const commit of commits) {
-    const isMerge = commit.parents?.split(' ').length > 1;
-    if (isMerge && allowMergeCommits) {
-      continue;
-    }
-    if (isMerge && !allowMergeCommits) {
-      invalidCommits.push({
-        hash: commit.hash,
-        message: commit.message,
-        reason: 'Merge commits are not allowed in the range.',
-      });
-      continue;
-    }
-    if (!conventionalRegex.test(commit.message)) {
-      invalidCommits.push({
-        hash: commit.hash,
-        message: commit.message,
-        reason: 'Commit message does not follow Conventional Commits.',
-      });
+    const error = validateCommit(commit, allowMergeCommits, conventionalRegex);
+    if (error) {
+      invalidCommits.push(error);
     }
   }
 
@@ -116,6 +129,86 @@ async function readFileIfExists(filePath: string): Promise<string | null> {
   }
 }
 
+
+async function checkTsConfig(packageDir: string): Promise<string[]> {
+  const issues: string[] = [];
+  const tsconfigPath = path.join(packageDir, 'tsconfig.json');
+  const tsconfigContent = await readFileIfExists(tsconfigPath);
+  if (!tsconfigContent) {
+    issues.push('tsconfig.json not found.');
+  } else {
+    try {
+      const tsconfig = JSON.parse(tsconfigContent) as { extends?: string };
+      if (!tsconfig.extends?.includes('@kitiumai/config/tsconfig.base.json')) {
+        issues.push('tsconfig.json does not extend @kitiumai/config/tsconfig.base.json.');
+      }
+    } catch {
+      issues.push('tsconfig.json could not be parsed.');
+    }
+  }
+  return issues;
+}
+
+async function checkEslint(packageDir: string): Promise<string[]> {
+  const issues: string[] = [];
+  const eslintPath = ['eslint.config.js', 'eslint.config.cjs', 'eslint.config.mjs']
+    .map((file) => path.join(packageDir, file))
+    .find((file) => existsSync(file));
+
+  if (!eslintPath) {
+    issues.push('ESLint flat config not found.');
+  } else {
+    const eslintContent = await readFileIfExists(eslintPath);
+    if (eslintContent && !eslintContent.includes('@kitiumai/config')) {
+      issues.push('ESLint config does not reference @kitiumai/config.');
+    }
+  }
+  return issues;
+}
+
+async function validatePackageConfig(
+  packageFile: string,
+  requireTsconfig: boolean,
+  requireEslint: boolean
+): Promise<SharedConfigResult | null> {
+  const packageDir = path.dirname(packageFile);
+  if (packageDir.includes('node_modules')) { return null; }
+
+  try {
+    const package_ = await readJson<{
+      name?: string;
+      devDependencies?: Record<string, string>;
+      dependencies?: Record<string, string>;
+    }>(packageFile);
+
+    if (!package_.name || package_.name.startsWith('@kitiumai/scripts')) {
+      return null;
+    }
+
+    const issues: string[] = [];
+    const deps = { ...package_.dependencies, ...package_.devDependencies };
+    if (!deps['@kitiumai/config']) {
+      issues.push('Missing devDependency on @kitiumai/config.');
+    }
+
+    if (requireTsconfig) {
+      issues.push(...await checkTsConfig(packageDir));
+    }
+
+    if (requireEslint) {
+      issues.push(...await checkEslint(packageDir));
+    }
+
+    if (issues.length > 0) {
+      return { packageDir, issues };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+
 export async function ensureSharedConfigs(
   options: SharedConfigOptions = {}
 ): Promise<SharedConfigResult[]> {
@@ -124,63 +217,9 @@ export async function ensureSharedConfigs(
   const results: SharedConfigResult[] = [];
 
   for (const packageFile of packageFiles) {
-    const packageDir = path.dirname(packageFile);
-    if (packageDir.includes('node_modules')) continue;
-
-    try {
-      const pkg = await readJson<{
-        name?: string;
-        devDependencies?: Record<string, string>;
-        dependencies?: Record<string, string>;
-      }>(packageFile);
-
-      if (!pkg.name || pkg.name.startsWith('@kitiumai/scripts')) {
-        continue;
-      }
-
-      const issues: string[] = [];
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if (!deps['@kitiumai/config']) {
-        issues.push('Missing devDependency on @kitiumai/config.');
-      }
-
-      if (requireTsconfig) {
-        const tsconfigPath = path.join(packageDir, 'tsconfig.json');
-        const tsconfigContent = await readFileIfExists(tsconfigPath);
-        if (!tsconfigContent) {
-          issues.push('tsconfig.json not found.');
-        } else {
-          try {
-            const tsconfig = JSON.parse(tsconfigContent) as { extends?: string };
-            if (!tsconfig.extends?.includes('@kitiumai/config/tsconfig.base.json')) {
-              issues.push('tsconfig.json does not extend @kitiumai/config/tsconfig.base.json.');
-            }
-          } catch {
-            issues.push('tsconfig.json could not be parsed.');
-          }
-        }
-      }
-
-      if (requireEslint) {
-        const eslintPath = ['eslint.config.js', 'eslint.config.cjs', 'eslint.config.mjs']
-          .map((file) => path.join(packageDir, file))
-          .find((file) => existsSync(file));
-
-        if (!eslintPath) {
-          issues.push('ESLint flat config not found.');
-        } else {
-          const eslintContent = await readFileIfExists(eslintPath);
-          if (eslintContent && !eslintContent.includes('@kitiumai/config')) {
-            issues.push('ESLint config does not reference @kitiumai/config.');
-          }
-        }
-      }
-
-      if (issues.length > 0) {
-        results.push({ packageDir, issues });
-      }
-    } catch {
-      continue;
+    const result = await validatePackageConfig(packageFile, requireTsconfig, requireEslint);
+    if (result) {
+      results.push(result);
     }
   }
 
@@ -192,6 +231,7 @@ export async function ensureSharedConfigs(
 
   return results;
 }
+
 
 export interface CodeownersRule {
   pattern: string;
@@ -229,7 +269,7 @@ export async function checkCodeownersCoverage(files?: string[]): Promise<Codeown
   const rules: CodeownersRule[] = [];
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed || trimmed.startsWith('#')) { continue; }
     const [pattern, ...owners] = trimmed.split(/\s+/);
     if (pattern && owners.length > 0) {
       rules.push({ pattern, owners });
@@ -263,4 +303,3 @@ export async function checkCodeownersCoverage(files?: string[]): Promise<Codeown
 
   return { missingOwners, rulesEvaluated: rules.length };
 }
-

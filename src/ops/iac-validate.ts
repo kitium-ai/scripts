@@ -1,4 +1,5 @@
-import path from 'path';
+import path from 'node:path';
+
 import { exec, log } from '../utils/index.js';
 
 export interface PolicyPackConfig {
@@ -138,6 +139,65 @@ async function validatePolicyPack(pack: PolicyPackConfig, cwd: string | undefine
   return results;
 }
 
+
+async function processTerraform(
+  targets: string[],
+  cwd: string | undefined,
+  failFast: boolean | undefined
+): Promise<ToolResult[]> {
+  const results: ToolResult[] = [];
+  for (const dir of targets) {
+    const workDir = cwd ? path.join(cwd, dir) : dir;
+    const result = await validateTerraform(workDir);
+    results.push(result);
+    if (failFast && !result.ok) { break; }
+  }
+  return results;
+}
+
+async function processTerragrunt(
+  targets: string[],
+  cwd: string | undefined,
+  failFast: boolean | undefined
+): Promise<ToolResult[]> {
+  const results: ToolResult[] = [];
+  for (const dir of targets) {
+    const workDir = cwd ? path.join(cwd, dir) : dir;
+    const result = await validateTerragrunt(workDir);
+    results.push(result);
+    if (failFast && !result.ok) { break; }
+  }
+  return results;
+}
+
+async function processCloudFormation(
+  targets: string[],
+  cwd: string | undefined,
+  failFast: boolean | undefined
+): Promise<ToolResult[]> {
+  const results: ToolResult[] = [];
+  for (const template of targets) {
+    const result = await validateCloudFormation(template, cwd);
+    results.push(result);
+    if (failFast && !result.ok) { break; }
+  }
+  return results;
+}
+
+async function processPolicyPacks(
+  packs: PolicyPackConfig[],
+  cwd: string | undefined,
+  failFast: boolean | undefined
+): Promise<ToolResult[]> {
+  const results: ToolResult[] = [];
+  for (const pack of packs) {
+    const packResults = await validatePolicyPack(pack, cwd);
+    results.push(...packResults);
+    if (failFast && packResults.some((r) => !r.ok)) { break; }
+  }
+  return results;
+}
+
 export async function validateInfrastructure(
   options: IaCValidateOptions,
 ): Promise<IaCValidationReport> {
@@ -146,35 +206,10 @@ export async function validateInfrastructure(
   const cloudformationTargets = options.cloudformationTemplates ?? [];
   const policyPacks = options.policyPacks ?? [];
 
-  const terraformResults: ToolResult[] = [];
-  for (const dir of terraformTargets) {
-    const workDir = options.cwd ? path.join(options.cwd, dir) : dir;
-    const result = await validateTerraform(workDir);
-    terraformResults.push(result);
-    if (options.failFast && !result.ok) break;
-  }
-
-  const terragruntResults: ToolResult[] = [];
-  for (const dir of terragruntTargets) {
-    const workDir = options.cwd ? path.join(options.cwd, dir) : dir;
-    const result = await validateTerragrunt(workDir);
-    terragruntResults.push(result);
-    if (options.failFast && !result.ok) break;
-  }
-
-  const cloudformationResults: ToolResult[] = [];
-  for (const template of cloudformationTargets) {
-    const result = await validateCloudFormation(template, options.cwd);
-    cloudformationResults.push(result);
-    if (options.failFast && !result.ok) break;
-  }
-
-  const policyResults: ToolResult[] = [];
-  for (const pack of policyPacks) {
-    const packResults = await validatePolicyPack(pack, options.cwd);
-    policyResults.push(...packResults);
-    if (options.failFast && packResults.some((r) => !r.ok)) break;
-  }
+  const terraformResults = await processTerraform(terraformTargets, options.cwd, options.failFast);
+  const terragruntResults = await processTerragrunt(terragruntTargets, options.cwd, options.failFast);
+  const cloudformationResults = await processCloudFormation(cloudformationTargets, options.cwd, options.failFast);
+  const policyResults = await processPolicyPacks(policyPacks, options.cwd, options.failFast);
 
   return {
     terraform: terraformResults,

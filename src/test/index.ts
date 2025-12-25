@@ -1,4 +1,4 @@
-import { exec, log, measure, findFiles } from '../utils/index.js';
+import { exec, findFiles,log, measure } from '../utils/index.js';
 
 /**
  * Test execution options

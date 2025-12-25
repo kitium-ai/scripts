@@ -1,5 +1,6 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { exec, log } from '../utils/index.js';
 import type { SecretScanFinding, SecretScanResult } from './index.js';
 
@@ -36,7 +37,7 @@ function parseJsonLines(output: string): SecretScanFinding[] {
   return findings;
 }
 
-function buildGitleaksArgs(options: PrecommitSecretOptions): string[] {
+function buildGitleaksArguments(options: PrecommitSecretOptions): string[] {
   const args = ['detect', '--staged', '--no-banner', '--redact', '--report-format', 'json'];
   if (options.includeUntracked) {
     args.push('--unstaged');
@@ -50,7 +51,7 @@ function buildGitleaksArgs(options: PrecommitSecretOptions): string[] {
   return args;
 }
 
-function buildTrufflehogArgs(options: PrecommitSecretOptions): string[] {
+function buildTrufflehogArguments(options: PrecommitSecretOptions): string[] {
   const args = ['filesystem', '.', '--fail', '--json'];
   if (options.configPath) {
     args.push('--rules', options.configPath);
@@ -73,8 +74,8 @@ async function runScanner(
     /not recognized|command not found|ENOENT|could not find/i.test(result.stderr);
 
   if (missingBinary) {
-    const pkg = scanner === 'gitleaks' ? 'gitleaks@latest' : 'trufflehog@latest';
-    result = await exec('npx', ['--yes', pkg, ...args], { cwd, throwOnError: false });
+    const package_ = scanner === 'gitleaks' ? 'gitleaks@latest' : 'trufflehog@latest';
+    result = await exec('npx', ['--yes', package_, ...args], { cwd, throwOnError: false });
   }
 
   const findings = parseJsonLines(result.stdout);
@@ -97,7 +98,7 @@ export async function runPrecommitSecretScan(
 ): Promise<SecretScanResult> {
   const scanner: SecretScanner = options.scanner ?? 'gitleaks';
   const cwd = options.cwd ?? process.cwd();
-  const args = scanner === 'gitleaks' ? buildGitleaksArgs(options) : buildTrufflehogArgs(options);
+  const args = scanner === 'gitleaks' ? buildGitleaksArguments(options) : buildTrufflehogArguments(options);
   const result = await runScanner(scanner, args, cwd);
 
   if (result.findings.length > 0) {
@@ -114,7 +115,7 @@ export async function installSecretScanHook(options: HookOptions = {}): Promise<
   const hookDir = options.hookDir ?? path.join(cwd, '.git', 'hooks');
   const hookPath = path.join(hookDir, hook);
 
-  const args = scanner === 'gitleaks' ? buildGitleaksArgs(options) : buildTrufflehogArgs(options);
+  const args = scanner === 'gitleaks' ? buildGitleaksArguments(options) : buildTrufflehogArguments(options);
   const hookBody = `#!/usr/bin/env sh\n` +
     `echo "[kitium] running ${scanner} secret scan"\n` +
     `${scanner} ${args.join(' ')} 2>/dev/null || npx --yes ${scanner}@latest ${args.join(' ')}\n`;

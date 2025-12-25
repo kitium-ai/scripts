@@ -1,5 +1,7 @@
-import fs from 'fs-extra';
 import path from 'node:path';
+
+import fs from 'fs-extra';
+
 import { logger as consoleLogger } from '../utils/logger.js';
 
 export const DEFAULT_REDACTION_FIELDS = [
@@ -138,14 +140,14 @@ export async function bootstrapStructuredLogging(options: LoggingBootstrapOption
   return configPath;
 }
 
-function bindContext<T extends StructuredLogger>(loggerInstance: T, context: StructuredLoggerContext) {
+function bindContext<T extends StructuredLogger>(loggerInstance: T, context: StructuredLoggerContext): StructuredLogger {
   const metadata = context ?? {};
-    const emit = (level: keyof StructuredLogger, message: string, meta?: Record<string, unknown>) => {
-      const payload = { ...metadata, ...meta };
-      const levelMethod = loggerInstance[level];
-      const genericLog:
-        | ((level: string, message: string, meta?: Record<string, unknown>) => void)
-        | undefined = (loggerInstance as {
+  const emit = (level: keyof StructuredLogger, message: string, meta?: Record<string, unknown>): void => {
+    const payload = { ...metadata, ...meta };
+    const levelMethod = loggerInstance[level];
+    const genericLog:
+      | ((level: string, message: string, meta?: Record<string, unknown>) => void)
+      | undefined = (loggerInstance as {
         log?: (level: string, message: string, meta?: Record<string, unknown>) => void;
       }).log;
 
@@ -154,11 +156,11 @@ function bindContext<T extends StructuredLogger>(loggerInstance: T, context: Str
       return;
     }
 
-      if (typeof genericLog === 'function') {
-        const normalizedLevel = level === 'fatal' ? 'fatal' : level;
-        genericLog(normalizedLevel, message, payload);
-        return;
-      }
+    if (typeof genericLog === 'function') {
+      const normalizedLevel = level === 'fatal' ? 'fatal' : level;
+      genericLog(normalizedLevel, message, payload);
+      return;
+    }
 
     if (typeof loggerInstance.info === 'function') {
       loggerInstance.info(message, payload);

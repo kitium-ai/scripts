@@ -48,14 +48,14 @@ export function validateAIToken(provider: AIProvider, token: string): boolean {
  */
 export function getAIToken(provider: AIProvider): string | undefined {
   // Try environment variables first
-  const envVars: Record<AIProvider, string> = {
+  const environmentVariables: Record<AIProvider, string> = {
     openai: 'OPENAI_API_KEY',
     anthropic: 'ANTHROPIC_API_KEY',
     google: 'GOOGLE_API_KEY',
     deepseek: 'DEEPSEEK_API_KEY',
   };
 
-  return process.env[envVars[provider]];
+  return process.env[environmentVariables[provider]];
 }
 
 /**

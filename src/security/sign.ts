@@ -1,6 +1,6 @@
-import path from 'path';
-import { existsSync } from 'fs';
-import { promises as fs } from 'fs';
+import { existsSync , promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { exec, log } from '../utils/index.js';
 
 export type SigningTool = 'cosign' | 'gpg';
@@ -24,7 +24,7 @@ export interface VerifyArtifactOptions {
 }
 
 function buildSignaturePath(artifact: string, provided?: string): string {
-  if (provided) return provided;
+  if (provided) {return provided;}
   return `${artifact}.sig`;
 }
 
@@ -32,7 +32,7 @@ function shouldRetryWithNpx(result: { code: number; stderr: string }): boolean {
   return result.code === 127 || /not found|ENOENT|is not recognized|cosign/i.test(result.stderr);
 }
 
-function toAnnotationArgs(annotations: Record<string, string> = {}): string[] {
+function toAnnotationArguments(annotations: Record<string, string> = {}): string[] {
   return Object.entries(annotations).flatMap(([key, value]) => ['--annotation', `${key}=${value}`]);
 }
 
@@ -69,14 +69,14 @@ export async function signArtifact(options: SignArtifactOptions): Promise<string
     if (identityToken) {
       args.push('--identity-token', identityToken);
     }
-    args.push(...toAnnotationArgs(annotations));
+    args.push(...toAnnotationArguments(annotations));
     fallback = '@sigstore/cosign';
   }
 
   let result = await exec(command, args, { cwd, throwOnError: false });
   if (result.code !== 0 && shouldRetryWithNpx(result) && fallback !== 'gpg') {
-    const npxArgs = ['--yes', fallback, ...args];
-    result = await exec('npx', npxArgs, { cwd, throwOnError: false });
+    const npxArguments = ['--yes', fallback, ...args];
+    result = await exec('npx', npxArguments, { cwd, throwOnError: false });
   }
 
   if (result.code !== 0) {
@@ -117,8 +117,8 @@ export async function verifyArtifact(options: VerifyArtifactOptions): Promise<bo
 
   let result = await exec(command, args, { cwd, throwOnError: false });
   if (result.code !== 0 && shouldRetryWithNpx(result) && fallback !== 'gpg') {
-    const npxArgs = ['--yes', fallback, ...args];
-    result = await exec('npx', npxArgs, { cwd, throwOnError: false });
+    const npxArguments = ['--yes', fallback, ...args];
+    result = await exec('npx', npxArguments, { cwd, throwOnError: false });
   }
 
   if (result.code !== 0) {

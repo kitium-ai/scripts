@@ -1,10 +1,10 @@
 import { log } from '../utils/index.js';
 
-function isProcessEnv(value: unknown): value is Record<string, string | undefined> {
+function isProcessEnvironment(value: unknown): value is Record<string, string | undefined> {
   return typeof value === 'object' && value !== null;
 }
 
-export interface EnvCoverageResult {
+export interface EnvironmentCoverageResult {
   required: string[];
   provided: string[];
   missing: string[];
@@ -12,24 +12,24 @@ export interface EnvCoverageResult {
   empty: string[];
 }
 
-export interface EnvCoverageOptions {
+export interface EnvironmentCoverageOptions {
   requiredEnv: string[];
   env?: Record<string, string | undefined>;
   allowEmpty?: boolean;
   verbose?: boolean;
 }
 
-export function diffEnvCoverage(options: EnvCoverageOptions): EnvCoverageResult {
+export function diffEnvCoverage(options: EnvironmentCoverageOptions): EnvironmentCoverageResult {
   const { requiredEnv, allowEmpty = false, verbose = true } = options;
-  const envVars: Record<string, string | undefined> = isProcessEnv(options.env) ? options.env : process.env;
-  const provided = Object.keys(envVars);
-  const missing = requiredEnv.filter((key) => !(key in envVars));
+  const environmentVariables: Record<string, string | undefined> = isProcessEnvironment(options.env) ? options.env : process.env;
+  const provided = Object.keys(environmentVariables);
+  const missing = requiredEnv.filter((key) => !(key in environmentVariables));
   const empty = allowEmpty
     ? []
-    : requiredEnv.filter((key) => key in envVars && (envVars[key] ?? '') === '');
+    : requiredEnv.filter((key) => key in environmentVariables && (environmentVariables[key] ?? '') === '');
   const extraneous = provided.filter((key) => !requiredEnv.includes(key));
 
-  const result: EnvCoverageResult = {
+  const result: EnvironmentCoverageResult = {
     required: [...requiredEnv],
     provided,
     missing,
@@ -54,7 +54,7 @@ export function diffEnvCoverage(options: EnvCoverageOptions): EnvCoverageResult 
   return result;
 }
 
-export function ensureEnvCoverage(options: EnvCoverageOptions): EnvCoverageResult {
+export function ensureEnvCoverage(options: EnvironmentCoverageOptions): EnvironmentCoverageResult {
   const result = diffEnvCoverage(options);
   if (result.missing.length || result.empty.length) {
     const missing = result.missing.length ? `Missing: ${result.missing.join(', ')}` : '';

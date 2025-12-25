@@ -1,5 +1,6 @@
-import path from 'path';
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 import { exec, log } from '../utils/index.js';
 
 export type SbomTool = 'syft' | 'cyclonedx';
@@ -84,8 +85,8 @@ export async function generateSbom(options: SbomOptions = {}): Promise<string> {
   let result = await exec(plan.command, plan.args, { cwd, throwOnError: false });
 
   if (result.code !== 0 && shouldRetryWithNpx(result)) {
-    const npxArgs = ['--yes', plan.fallbackPackage, ...plan.args];
-    result = await exec('npx', npxArgs, { cwd, throwOnError: false });
+    const npxArguments = ['--yes', plan.fallbackPackage, ...plan.args];
+    result = await exec('npx', npxArguments, { cwd, throwOnError: false });
   }
 
   if (result.code !== 0) {

@@ -1,5 +1,6 @@
-import { promises as fs } from 'fs';
-import { pathExists, readJson, log } from '../utils/index.js';
+import { promises as fs } from 'node:fs';
+
+import { log, pathExists, readJson } from '../utils/index.js';
 
 export type FieldType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'date' | 'null' | 'unknown';
 
@@ -61,9 +62,9 @@ function formatValue(value: unknown): string {
 }
 
 function detectType(value: unknown): FieldType {
-  if (value === null || value === undefined) return 'null';
-  if (Array.isArray(value)) return 'array';
-  if (value instanceof Date) return 'date';
+  if (value === null || value === undefined) { return 'null'; }
+  if (Array.isArray(value)) { return 'array'; }
+  if (value instanceof Date) { return 'date'; }
   if (typeof value === 'string') {
     const isoDate = Date.parse(value);
     if (!Number.isNaN(isoDate) && value.length >= 10 && value.length <= 30) {
@@ -71,14 +72,14 @@ function detectType(value: unknown): FieldType {
     }
     return 'string';
   }
-  if (typeof value === 'number') return 'number';
-  if (typeof value === 'boolean') return 'boolean';
-  if (typeof value === 'object') return 'object';
+  if (typeof value === 'number') { return 'number'; }
+  if (typeof value === 'boolean') { return 'boolean'; }
+  if (typeof value === 'object') { return 'object'; }
   return 'unknown';
 }
 
 async function loadDataset(dataset?: Array<Record<string, unknown>>, datasetPath?: string): Promise<Array<Record<string, unknown>>> {
-  if (dataset) return dataset;
+  if (dataset) { return dataset; }
   if (!datasetPath) {
     throw new Error('dataset or datasetPath is required for schema validation');
   }
@@ -101,7 +102,7 @@ async function loadDataset(dataset?: Array<Record<string, unknown>>, datasetPath
 }
 
 async function loadSchema(schema?: SchemaDefinition, schemaPath?: string): Promise<SchemaDefinition> {
-  if (schema) return schema;
+  if (schema) { return schema; }
   if (!schemaPath) {
     throw new Error('schema or schemaPath is required for schema validation');
   }
@@ -118,7 +119,7 @@ function buildProfile(records: Array<Record<string, unknown>>): SchemaProfile {
     for (const key of keys) {
       fieldPresence[key] = (fieldPresence[key] || 0) + 1;
       const fieldType = detectType(record[key]);
-      const dist = (typeDistribution[key] = typeDistribution[key] || {
+      const distribution = (typeDistribution[key] = typeDistribution[key] || {
         string: 0,
         number: 0,
         boolean: 0,
@@ -128,7 +129,7 @@ function buildProfile(records: Array<Record<string, unknown>>): SchemaProfile {
         null: 0,
         unknown: 0,
       });
-      dist[fieldType] += 1;
+      distribution[fieldType] += 1;
     }
   }
 
@@ -243,6 +244,21 @@ function detectDrift(
   return drift;
 }
 
+
+async function checkSchemaDrift(
+  profile: SchemaProfile,
+  baselinePath: string | undefined,
+  threshold: number
+): Promise<SchemaDrift[] | undefined> {
+  if (baselinePath && (await pathExists(baselinePath))) {
+    const baseline = await readJson<SchemaProfile>(baselinePath);
+    return detectDrift(profile, baseline, threshold);
+  } else if (baselinePath) {
+    log('warn', `Drift baseline not found at ${baselinePath}. Provide a baseline to enable drift alerts.`);
+  }
+  return undefined;
+}
+
 export async function validateDatasetSchema(options: SchemaValidateOptions): Promise<SchemaValidationResult> {
   const {
     dataset,
@@ -257,21 +273,14 @@ export async function validateDatasetSchema(options: SchemaValidateOptions): Pro
 
   const records = await loadDataset(dataset, datasetPath);
   const schemaDefinition = await loadSchema(schema, schemaPath);
-  const errors: string[] = [];
 
+  const errors: string[] = [];
   for (const record of records) {
     errors.push(...validateRecord(record, schemaDefinition, allowAdditionalFields));
   }
 
   const profile = buildProfile(records);
-  let drift: SchemaDrift[] | undefined;
-
-  if (driftBaselinePath && (await pathExists(driftBaselinePath))) {
-    const baseline = await readJson<SchemaProfile>(driftBaselinePath);
-    drift = detectDrift(profile, baseline, driftThreshold);
-  } else if (driftBaselinePath) {
-    log('warn', `Drift baseline not found at ${driftBaselinePath}. Provide a baseline to enable drift alerts.`);
-  }
+  const drift = await checkSchemaDrift(profile, driftBaselinePath, driftThreshold);
 
   const hasErrors = errors.length > 0;
   const hasDrift = drift && drift.length > 0;

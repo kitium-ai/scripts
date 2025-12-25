@@ -1,10 +1,10 @@
-import fs from 'fs';
-import { promises as fsp } from 'fs';
-import path from 'path';
-import os from 'os';
-import readline from 'readline';
+import fs, { promises as fsp } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import readline from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import type { WriteStream } from 'node:tty';
+
 import chalk from 'chalk';
 
 const CONFIG_DIR = path.join(os.homedir(), '.kitiumai');
@@ -47,10 +47,10 @@ const providers: Provider[] = [
 ];
 
 const log = {
-  info: (msg: string) => console.log(chalk.blue('ℹ'), msg),
-  success: (msg: string) => console.log(chalk.green('✔'), msg),
-  warn: (msg: string) => console.log(chalk.yellow('!'), msg),
-  error: (msg: string) => console.error(chalk.red('✖'), msg),
+  info: (message: string) => console.log(chalk.blue('ℹ'), message),
+  success: (message: string) => console.log(chalk.green('✔'), message),
+  warn: (message: string) => console.log(chalk.yellow('!'), message),
+  error: (message: string) => console.error(chalk.red('✖'), message),
 };
 
 function prompt(question: string, mask = false): Promise<string> {
@@ -62,10 +62,10 @@ function prompt(question: string, mask = false): Promise<string> {
 
     const out = rl.output as WriteStream | undefined;
 
-      if (mask && out && 'isTTY' in out && out.isTTY) {
-        out.write(question);
-        rl.input.on('data', (char: Buffer | string) => {
-          const ch = typeof char === 'string' ? char : char.toString();
+    if (mask && out && 'isTTY' in out && out.isTTY) {
+      out.write(question);
+      rl.input.on('data', (char: Buffer | string) => {
+        const ch = typeof char === 'string' ? char : char.toString();
         switch (ch) {
           case '\n':
           case '\r':
@@ -115,10 +115,10 @@ export async function runAddAiTokens(): Promise<void> {
   let changed = false;
 
   for (const provider of providers) {
-    const envVal = process.env[provider.env];
-    if (envVal) {
+    const environmentValue = process.env[provider.env];
+    if (environmentValue) {
       log.info(`${provider.name} token detected in ${provider.env}; using that value.`);
-      updated[provider.key] = envVal;
+      updated[provider.key] = environmentValue;
       changed = true;
       continue;
     }

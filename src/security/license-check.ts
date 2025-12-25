@@ -1,5 +1,6 @@
-import { existsSync } from 'fs';
-import { readJson, findFiles, log } from '../utils/index.js';
+import { existsSync } from 'node:fs';
+
+import { findFiles, log,readJson } from '../utils/index.js';
 
 export interface WorkspaceLicense {
   name: string;
@@ -38,14 +39,14 @@ async function loadPolicy(options: LicenseCheckOptions): Promise<LicensePolicy> 
 
   if (policyFile && existsSync(policyFile)) {
     const filePolicy = await readJson<Partial<LicensePolicy>>(policyFile);
-    if (filePolicy.allowedLicenses) basePolicy.allowedLicenses = filePolicy.allowedLicenses;
-    if (filePolicy.blockedLicenses) basePolicy.blockedLicenses = filePolicy.blockedLicenses;
-    if (filePolicy.ignorePackages) basePolicy.ignorePackages = filePolicy.ignorePackages;
+    if (filePolicy.allowedLicenses) {basePolicy.allowedLicenses = filePolicy.allowedLicenses;}
+    if (filePolicy.blockedLicenses) {basePolicy.blockedLicenses = filePolicy.blockedLicenses;}
+    if (filePolicy.ignorePackages) {basePolicy.ignorePackages = filePolicy.ignorePackages;}
   }
 
-  if (allowedLicenses) basePolicy.allowedLicenses = allowedLicenses;
-  if (blockedLicenses) basePolicy.blockedLicenses = blockedLicenses;
-  if (ignorePackages) basePolicy.ignorePackages = ignorePackages;
+  if (allowedLicenses) {basePolicy.allowedLicenses = allowedLicenses;}
+  if (blockedLicenses) {basePolicy.blockedLicenses = blockedLicenses;}
+  if (ignorePackages) {basePolicy.ignorePackages = ignorePackages;}
 
   return basePolicy;
 }
@@ -56,9 +57,9 @@ export async function collectWorkspaceLicenses(root = process.cwd()): Promise<Wo
 
   for (const file of packageFiles) {
     try {
-      const pkg = await readJson<{ name?: string; license?: string }>(file);
-      if (pkg.name) {
-        packages.push({ name: pkg.name, license: pkg.license, path: file });
+      const package_ = await readJson<{ name?: string; license?: string }>(file);
+      if (package_.name) {
+        packages.push({ name: package_.name, license: package_.license, path: file });
       }
     } catch {
       continue;
@@ -74,22 +75,22 @@ export async function enforceLicensePolicy(options: LicenseCheckOptions = {}): P
   const packages = await collectWorkspaceLicenses(root);
 
   const violations: string[] = [];
-  const ignored = new Set((policy.ignorePackages || []).map((pkg) => pkg.toLowerCase()));
+  const ignored = new Set((policy.ignorePackages || []).map((package_) => package_.toLowerCase()));
 
-  for (const pkg of packages) {
-    if (ignored.has(pkg.name.toLowerCase())) {
+  for (const package_ of packages) {
+    if (ignored.has(package_.name.toLowerCase())) {
       continue;
     }
-    if (!pkg.license) {
-      violations.push(`Package ${pkg.name} is missing a license declaration (${pkg.path}).`);
+    if (!package_.license) {
+      violations.push(`Package ${package_.name} is missing a license declaration (${package_.path}).`);
       continue;
     }
-    if (policy.blockedLicenses.includes(pkg.license)) {
-      violations.push(`Package ${pkg.name} uses blocked license ${pkg.license}.`);
+    if (policy.blockedLicenses.includes(package_.license)) {
+      violations.push(`Package ${package_.name} uses blocked license ${package_.license}.`);
       continue;
     }
-    if (!policy.allowedLicenses.includes(pkg.license)) {
-      violations.push(`Package ${pkg.name} uses license ${pkg.license} which is not allowed.`);
+    if (!policy.allowedLicenses.includes(package_.license)) {
+      violations.push(`Package ${package_.name} uses license ${package_.license} which is not allowed.`);
     }
   }
 

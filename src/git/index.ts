@@ -1,7 +1,8 @@
-import { exec, log, ExecResult, pathExists, getEnv } from '../utils/index.js';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+import { exec, ExecResult, getEnv as getEnvironment,log, pathExists } from '../utils/index.js';
 
 /**
  * Get current git branch
@@ -91,28 +92,28 @@ export async function getCommitHistory(limit = 10): Promise<string[]> {
  * - Should only contain valid git refname characters.
  * - See: https://git-scm.com/docs/git-check-ref-format
  */
-function isValidRefName(ref: string): boolean {
+function isValidReferenceName(reference: string): boolean {
   // Disallow leading dash, must be non-empty, and allow only git ref chars
   // This is a relatively strict pattern for typical use-cases; modify as needed.
   return (
-    typeof ref === 'string' &&
-    ref.length > 0 &&
-    !ref.startsWith('-') &&
-    /^[A-Za-z0-9._/-]+$/.test(ref) &&
+    typeof reference === 'string' &&
+    reference.length > 0 &&
+    !reference.startsWith('-') &&
+    /^[A-Za-z0-9._/-]+$/.test(reference) &&
     // No double dots, no '@{' sequence, does not end with dot, slash, or .lock
-    !ref.includes('..') &&
-    !ref.includes('@{') &&
-    !/[/.]$/.test(ref) &&
-    !ref.endsWith('.lock')
+    !reference.includes('..') &&
+    !reference.includes('@{') &&
+    !/[/.]$/.test(reference) &&
+    !reference.endsWith('.lock')
   );
 }
 
 export async function push(branch?: string, remote = 'origin'): Promise<void> {
   const branchName = branch || (await getCurrentBranch());
-  if (!isValidRefName(branchName)) {
+  if (!isValidReferenceName(branchName)) {
     throw new Error(`Invalid branch name: ${branchName}`);
   }
-  if (!isValidRefName(remote)) {
+  if (!isValidReferenceName(remote)) {
     throw new Error(`Invalid remote name: ${remote}`);
   }
   await exec('git', ['push', '-u', remote, branchName]);
@@ -126,10 +127,10 @@ export async function push(branch?: string, remote = 'origin'): Promise<void> {
  */
 export async function pull(branch?: string, remote = 'origin'): Promise<void> {
   const branchName = branch || (await getCurrentBranch());
-  if (!isValidRefName(branchName)) {
+  if (!isValidReferenceName(branchName)) {
     throw new Error(`Invalid branch name: ${branchName}`);
   }
-  if (!isValidRefName(remote)) {
+  if (!isValidReferenceName(remote)) {
     throw new Error(`Invalid remote name: ${remote}`);
   }
   await exec('git', ['pull', remote, branchName]);
@@ -222,7 +223,7 @@ export async function setNpmToken(
   const { verify = true } = options;
 
   // Get token from parameter or env var; never use hardcoded defaults
-  const npmToken = token || getEnv('NPM_TOKEN', '');
+  const npmToken = token || getEnvironment('NPM_TOKEN', '');
 
   if (!npmToken) {
     throw new Error('NPM_TOKEN is required');
@@ -269,11 +270,11 @@ export async function setNpmToken(
       } else {
         log('warn', 'Could not verify authentication. Please run: npm whoami');
       }
-      } catch {
-        log('warn', 'Could not verify authentication. Please run: npm whoami');
-      }
+    } catch {
+      log('warn', 'Could not verify authentication. Please run: npm whoami');
     }
   }
+}
 
 /**
  * Add .npmrc configuration to current package directory
@@ -300,7 +301,7 @@ export async function addNpmrc(force = false): Promise<void> {
   let rootDir: string | null = null;
   let searchDir = currentDir;
 
-  for (let i = 0; i < 20; i++) {
+  for (let index = 0; index < 20; index++) {
     const templatePath = path.join(searchDir, '.npmrc-package-template');
     if (await pathExists(templatePath)) {
       rootDir = searchDir;

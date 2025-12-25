@@ -53,6 +53,67 @@ export interface FlagLintResult {
   totalFlags: number;
 }
 
+
+function checkLDDescriptions(flag: LaunchDarklyFlagConfig, key: string, requireDescriptions: boolean | undefined, issues: string[]): void {
+  if (requireDescriptions !== false && !flag.description) {
+    issues.push(`Flag ${key} is missing a description`);
+  }
+}
+
+function checkLDTags(flag: LaunchDarklyFlagConfig, key: string, requiredTags: string[] | undefined, issues: string[]): void {
+  if (requiredTags && requiredTags.length > 0) {
+    const missingTags = requiredTags.filter((tag) => !(flag.tags || []).includes(tag));
+    if (missingTags.length > 0) {
+      issues.push(`Flag ${key} is missing required tags: ${missingTags.join(', ')}`);
+    }
+  }
+}
+
+function checkLDEnvironments(flag: LaunchDarklyFlagConfig, key: string, issues: string[]): void {
+  const environments = flag.environments ? Object.entries(flag.environments) : [];
+  for (const [environmentName, environment] of environments) {
+    if (environment.on && !environment.rules?.length && !environment.targets?.length) {
+      issues.push(`Flag ${key} environment ${environmentName} is permanently on without targeting rules`);
+    }
+    if (environment.on && environment.fallthrough?.variation === undefined && flag.fallthrough?.variation === undefined) {
+      issues.push(`Flag ${key} environment ${environmentName} is missing a fallthrough variation`);
+    }
+  }
+}
+
+function checkLDDeadness(flag: LaunchDarklyFlagConfig, key: string, referencedFlags: string[] | undefined, deadFlags: Set<string>): void {
+  const referenced = referencedFlags?.includes(key);
+  const archived = flag.archived === true;
+  const environments = flag.environments ? Object.entries(flag.environments) : [];
+  const inactiveEverywhere = environments.length > 0 && environments.every(([, environment]) => !environment.on);
+  if (archived || inactiveEverywhere || referenced === false) {
+    deadFlags.add(key);
+  }
+}
+
+function lintLaunchDarklyFlag(
+  flag: LaunchDarklyFlagConfig,
+  options: FlagLintOptions,
+  issues: string[],
+  deadFlags: Set<string>
+): void {
+  const key = flag.key;
+  if (!key) {
+    issues.push('LaunchDarkly flag missing key');
+    return;
+  }
+
+  checkLDDescriptions(flag, key, options.requireDescriptions, issues);
+  checkLDTags(flag, key, options.requiredTags, issues);
+
+  if (!flag.variations || flag.variations.length < 2) {
+    issues.push(`Flag ${key} should define at least two variations`);
+  }
+
+  checkLDEnvironments(flag, key, issues);
+  checkLDDeadness(flag, key, options.referencedFlags, deadFlags);
+}
+
 function collectIssuesForLaunchDarkly(
   config: LaunchDarklyProjectConfig,
   options: FlagLintOptions,
@@ -60,43 +121,51 @@ function collectIssuesForLaunchDarkly(
   deadFlags: Set<string>
 ): void {
   for (const flag of config.flags) {
-    const key = flag.key;
-    if (!key) {
-      issues.push('LaunchDarkly flag missing key');
-      continue;
-    }
+    lintLaunchDarklyFlag(flag, options, issues, deadFlags);
+  }
+}
 
-    if (options.requireDescriptions !== false && !flag.description) {
-      issues.push(`Flag ${key} is missing a description`);
-    }
+function checkCCBasic(flagConfig: ConfigCatFlagConfig, key: string, options: FlagLintOptions, issues: string[]): void {
+  if (options.requireDescriptions !== false && !flagConfig.description) {
+    issues.push(`Flag ${key} is missing a description`);
+  }
 
-    if (options.requiredTags && options.requiredTags.length > 0) {
-      const missingTags = options.requiredTags.filter((tag) => !(flag.tags || []).includes(tag));
-      if (missingTags.length > 0) {
-        issues.push(`Flag ${key} is missing required tags: ${missingTags.join(', ')}`);
-      }
+  if (options.requiredTags && options.requiredTags.length > 0) {
+    const missingTags = options.requiredTags.filter((tag) => !(flagConfig.tags || []).includes(tag));
+    if (missingTags.length > 0) {
+      issues.push(`Flag ${key} is missing required tags: ${missingTags.join(', ')}`);
     }
+  }
 
-    if (!flag.variations || flag.variations.length < 2) {
-      issues.push(`Flag ${key} should define at least two variations`);
-    }
+  if (flagConfig.defaultValue === undefined) {
+    issues.push(`Flag ${key} must define a defaultValue`);
+  }
+}
 
-    const envs = flag.environments ? Object.entries(flag.environments) : [];
-    for (const [envName, env] of envs) {
-      if (env.on && !env.rules?.length && !env.targets?.length) {
-        issues.push(`Flag ${key} environment ${envName} is permanently on without targeting rules`);
-      }
-      if (env.on && env.fallthrough?.variation === undefined && flag.fallthrough?.variation === undefined) {
-        issues.push(`Flag ${key} environment ${envName} is missing a fallthrough variation`);
-      }
-    }
 
-    const referenced = options.referencedFlags?.includes(key);
-    const archived = flag.archived === true;
-    const inactiveEverywhere = envs.length > 0 && envs.every(([, env]) => !env.on);
-    if (archived || inactiveEverywhere || referenced === false) {
-      deadFlags.add(key);
-    }
+function lintConfigCatFlag(
+  keyFromRecord: string,
+  flagConfig: ConfigCatFlagConfig,
+  options: FlagLintOptions,
+  issues: string[],
+  deadFlags: Set<string>
+): void {
+  const key = flagConfig.key || keyFromRecord;
+  if (!key) {
+    issues.push('ConfigCat flag missing key');
+    return;
+  }
+
+  checkCCBasic(flagConfig, key, options, issues);
+
+  if (!flagConfig.targetingRules?.length && !flagConfig.percentageRules?.length) {
+    issues.push(`Flag ${key} has no targeting or percentage rules defined`);
+  }
+
+  const referenced = options.referencedFlags?.includes(key);
+  const archived = flagConfig.archived === true || flagConfig.isArchived === true;
+  if (archived || referenced === false) {
+    deadFlags.add(key);
   }
 }
 
@@ -107,38 +176,10 @@ function collectIssuesForConfigCat(
   deadFlags: Set<string>
 ): void {
   for (const [keyFromRecord, flagConfig] of Object.entries(config.flags)) {
-    const key = flagConfig.key || keyFromRecord;
-    if (!key) {
-      issues.push('ConfigCat flag missing key');
-      continue;
-    }
-
-    if (options.requireDescriptions !== false && !flagConfig.description) {
-      issues.push(`Flag ${key} is missing a description`);
-    }
-
-    if (options.requiredTags && options.requiredTags.length > 0) {
-      const missingTags = options.requiredTags.filter((tag) => !(flagConfig.tags || []).includes(tag));
-      if (missingTags.length > 0) {
-        issues.push(`Flag ${key} is missing required tags: ${missingTags.join(', ')}`);
-      }
-    }
-
-    if (flagConfig.defaultValue === undefined) {
-      issues.push(`Flag ${key} must define a defaultValue`);
-    }
-
-    if (!flagConfig.targetingRules?.length && !flagConfig.percentageRules?.length) {
-      issues.push(`Flag ${key} has no targeting or percentage rules defined`);
-    }
-
-    const referenced = options.referencedFlags?.includes(key);
-    const archived = flagConfig.archived === true || flagConfig.isArchived === true;
-    if (archived || referenced === false) {
-      deadFlags.add(key);
-    }
+    lintConfigCatFlag(keyFromRecord, flagConfig, options, issues, deadFlags);
   }
 }
+
 
 export function lintFlags(options: FlagLintOptions): FlagLintResult {
   const issues: string[] = [];
